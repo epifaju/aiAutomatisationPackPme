@@ -1,0 +1,20 @@
+# Surcharges développement.
+# Usage :
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+
+services:
+  n8n:
+    environment:
+      N8N_SECURE_COOKIE: "false"
+      N8N_DIAGNOSTICS_ENABLED: "false"
+
+  backend:
+    environment:
+      APP_ENV: development
+      SPRING_PROFILES_ACTIVE: dev
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+
+  frontend:
+    environment:
+      APP_ENV: development

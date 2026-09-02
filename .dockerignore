@@ -1,0 +1,16 @@
+.git
+.github
+**/.idea
+**/target
+**/node_modules
+frontend
+n8n/credentials
+n8n/workflows
+ollama
+scripts
+docs
+tests
+*.md
+.env
+.env.*
+!.env.example

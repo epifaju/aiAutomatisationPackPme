@@ -1,0 +1,62 @@
+# Environnement et secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.jks
+secrets/
+credentials.json
+
+# Backend (Maven / Java) — Phase 2+
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+*.class
+*.jar
+*.war
+hs_err_pid*
+
+# Frontend (Node / Vite) — Phase 11+
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/.vite/
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+
+# Tests
+tests/**/node_modules/
+tests/**/test-results/
+tests/**/playwright-report/
+tests/**/blob-report/
+
+# n8n — credentials jamais versionnés
+n8n/credentials/*
+!n8n/credentials/.gitkeep
+
+# Ollama — poids de modèles trop volumineux
+ollama/models/*
+!ollama/models/.gitkeep
+
+# Données locales / volumes
+data/
+*.sqlite
+*.db
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Docker
+.docker/

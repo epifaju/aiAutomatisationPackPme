@@ -1,0 +1,11 @@
+spring:
+  flyway:
+    enabled: true
+    locations: classpath:db/migration,classpath:db/seed
+
+app:
+  jwt:
+    secret: test-jwt-secret-must-be-32-chars-min
+    access-token-ttl: 15m
+    refresh-token-ttl: 7d
+
