@@ -1,0 +1,21 @@
+Tu analyses un email reçu par une TPE/PME française.
+
+Email :
+- De : {{fromAddress}}
+- À : {{toAddress}}
+- Sujet : {{subject}}
+- Date : {{receivedAt}}
+- Corps :
+{{bodyText}}
+
+Réponds UNIQUEMENT avec un JSON valide, sans markdown ni texte autour, respectant exactement ce schéma :
+{
+  "category": "CLIENT" | "PROSPECT" | "FACTURE" | "FOURNISSEUR" | "SUPPORT" | "ADMINISTRATIF" | "SPAM" | "AUTRE",
+  "priority": "LOW" | "NORMAL" | "HIGH" | "URGENT",
+  "intent": "<intention courte en français, max 120 caractères>",
+  "summary": "<résumé factuel en 1 à 3 phrases>",
+  "confidenceScore": <nombre de 0 à 1>
+}
+
+N'invente pas de faits absents de l'email. Si le contenu est ambigu, choisis AUTRE et baisse confidenceScore.
+Si l'email est indésirable, publicitaire non sollicité ou frauduleux, category = SPAM.

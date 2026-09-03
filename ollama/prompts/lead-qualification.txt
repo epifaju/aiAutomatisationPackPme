@@ -1,0 +1,22 @@
+Tu qualifies un prospect pour une TPE/PME française.
+
+Contexte du lead :
+- Nom : {{fullName}}
+- Email : {{email}}
+- Société : {{companyName}}
+- Téléphone : {{phone}}
+- Source : {{source}}
+- Notes : {{summary}}
+
+Réponds UNIQUEMENT avec un JSON valide, sans markdown ni texte autour, respectant exactement ce schéma :
+{
+  "score": <entier de 0 à 100>,
+  "summary": "<résumé court du besoin>",
+  "probableNeed": "<besoin probable>",
+  "urgency": "LOW" | "NORMAL" | "HIGH" | "URGENT",
+  "potentialBudget": "<estimation ou inconnu>",
+  "recommendedAction": "<prochaine action concrète>",
+  "confidenceScore": <nombre de 0 à 1>
+}
+
+N'invente pas de coordonnées. Si une information manque, utilise une estimation prudente et baisse confidenceScore.

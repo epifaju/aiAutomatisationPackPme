@@ -3,10 +3,13 @@
 **/.idea
 **/target
 **/node_modules
-frontend
+frontend/node_modules
+frontend/dist
+frontend/coverage
+frontend/.vite
 n8n/credentials
 n8n/workflows
-ollama
+ollama/models
 scripts
 docs
 tests

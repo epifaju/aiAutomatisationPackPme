@@ -4,6 +4,7 @@ FROM maven:3.9.9-eclipse-temurin-21-alpine AS build
 WORKDIR /src
 COPY backend/pom.xml backend/pom.xml
 COPY database database
+COPY ollama/prompts ollama/prompts
 COPY backend/src backend/src
 WORKDIR /src/backend
 RUN mvn -B -DskipTests package

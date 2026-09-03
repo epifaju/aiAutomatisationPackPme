@@ -14,4 +14,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     @Query("SELECT u FROM User u JOIN FETCH u.company WHERE lower(u.email) = lower(:email)")
     List<User> findAllByEmailIgnoreCase(@Param("email") String email);
+
+    Optional<User> findFirstByCompany_IdAndRoleAndEnabledTrueOrderByCreatedAtAsc(UUID companyId, String role);
+
+    Optional<User> findFirstByCompany_IdAndEnabledTrueOrderByCreatedAtAsc(UUID companyId);
 }

@@ -103,18 +103,34 @@ SELECT
     ('eeeee001-0000-4000-8000-' || lpad(i::text, 12, '0'))::uuid,
     'aaaaaaaa-0000-4000-8000-000000000001',
     ('eeeeeeee-0000-4000-8000-' || lpad(i::text, 12, '0'))::uuid,
-    (ARRAY['CLIENT', 'PROSPECT', 'FACTURE', 'FOURNISSEUR', 'SUPPORT', 'ADMINISTRATIF', 'SPAM', 'AUTRE'])[1 + ((i - 1) % 8)],
+    cats.category,
     (ARRAY['LOW', 'NORMAL', 'HIGH', 'URGENT'])[1 + ((i - 1) % 4)],
     'demande-info',
     'Résumé IA fictif de l''email n°' || i,
-    'Proposition de réponse fictive n°' || i,
+    CASE WHEN cats.category = 'SPAM' THEN NULL ELSE 'Proposition de réponse fictive n°' || i END,
     0.50 + (i * 0.04),
     CASE WHEN i = 10 THEN 'REVIEW_REQUIRED' ELSE 'COMPLETED' END,
-    CASE WHEN i IN (9, 10) THEN 'PENDING_APPROVAL' ELSE NULL END,
+    CASE WHEN cats.category = 'SPAM' THEN NULL ELSE 'PENDING_APPROVAL' END,
     now(), now(),
     'seed'
 FROM generate_series(1, 10) AS g(i)
+CROSS JOIN LATERAL (
+    SELECT (ARRAY['CLIENT', 'PROSPECT', 'FACTURE', 'FOURNISSEUR', 'SUPPORT', 'ADMINISTRATIF', 'SPAM', 'AUTRE'])[1 + ((i - 1) % 8)] AS category
+) AS cats
 ON CONFLICT (id) DO NOTHING;
+
+-- Align existing demo rows with analyze(): non-spam replies wait for human validation.
+UPDATE email_analysis
+SET
+    suggested_reply = CASE WHEN category = 'SPAM' THEN NULL ELSE suggested_reply END,
+    approval_status = CASE
+        WHEN category = 'SPAM' THEN NULL
+        WHEN approval_status IS NULL THEN 'PENDING_APPROVAL'
+        ELSE approval_status
+    END,
+    updated_at = now()
+WHERE company_id = 'aaaaaaaa-0000-4000-8000-000000000001'
+  AND created_by = 'seed';
 
 INSERT INTO customers (
     id, company_id, name, email, phone, address, created_at, updated_at, created_by

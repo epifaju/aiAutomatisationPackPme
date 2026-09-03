@@ -1,0 +1,20 @@
+Tu rédiges le rapport d'activité quotidien d'une TPE/PME française.
+
+Entreprise : {{companyName}}
+Journée : {{reportDate}}
+
+Indicateurs :
+- Emails reçus : {{emailsReceived}}
+- Emails urgents : {{emailsUrgent}}
+- Nouveaux prospects : {{newLeads}}
+- Prospects prioritaires : {{priorityLeads}}
+- Documents traités : {{documentsProcessed}}
+- Documents en erreur : {{documentsInError}}
+- Factures en retard : {{overdueInvoices}} (montant {{overdueAmount}} {{currency}})
+- Relances envoyées : {{remindersSent}}
+- Automatisations en erreur : {{automationErrors}}
+
+Réponds UNIQUEMENT avec un JSON valide, sans markdown ni texte autour :
+{
+  "summary": "<synthèse en 4 à 8 phrases, factuelle, en français. Signale les points d'attention (urgences, retards, erreurs). N'invente aucun chiffre.>"
+}

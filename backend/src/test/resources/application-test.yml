@@ -8,4 +8,27 @@ app:
     secret: test-jwt-secret-must-be-32-chars-min
     access-token-ttl: 15m
     refresh-token-ttl: 7d
+  webhook:
+    secret: test-webhook-secret-16
+  email:
+    auto-send: false
+  storage:
+    provider: memory
+    endpoint: http://localhost:9000
+    access-key: test
+    secret-key: test-secret
+    bucket: aipack-test
+  documents:
+    max-size-bytes: 20971520
+  invoices:
+    auto-send: false
+    scheduler-enabled: false
+    from-address: relances@demo.aipack.example
+  reports:
+    auto-send: false
+    scheduler-enabled: false
+    from-address: rapports@demo.aipack.example
+  ai:
+    cache:
+      enabled: false
 

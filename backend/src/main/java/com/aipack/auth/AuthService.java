@@ -1,5 +1,8 @@
 package com.aipack.auth;
 
+import com.aipack.audit.AuditRecord;
+import com.aipack.audit.AuditService;
+import com.aipack.audit.AuditStatus;
 import com.aipack.auth.dto.LoginRequest;
 import com.aipack.auth.dto.TokenResponse;
 import com.aipack.auth.dto.UserMeResponse;
@@ -16,6 +19,7 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,6 +33,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final JwtProperties jwtProperties;
     private final UserMapper userMapper;
+    private final AuditService auditService;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(
@@ -37,13 +42,15 @@ public class AuthService {
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
             JwtProperties jwtProperties,
-            UserMapper userMapper) {
+            UserMapper userMapper,
+            AuditService auditService) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.jwtProperties = jwtProperties;
         this.userMapper = userMapper;
+        this.auditService = auditService;
     }
 
     @Transactional
@@ -54,7 +61,9 @@ public class AuthService {
             throw AuthException.unauthorized();
         }
         user.setLastLoginAt(Instant.now());
-        return issueTokens(user);
+        TokenResponse tokens = issueTokens(user);
+        auditUser(user, "LOGIN");
+        return tokens;
     }
 
     @Transactional
@@ -85,6 +94,14 @@ public class AuthService {
     @Transactional
     public void logout(AuthUser principal) {
         refreshTokenRepository.revokeAllActiveForUser(principal.id(), Instant.now());
+        auditService.record(new AuditRecord(
+                principal.companyId(),
+                null,
+                "LOGOUT",
+                "USER",
+                principal.id().toString(),
+                AuditStatus.SUCCESS,
+                Map.of("email", principal.email())));
     }
 
     @Transactional(readOnly = true)
@@ -93,6 +110,17 @@ public class AuthService {
                 .findByIdWithCompany(principal.id())
                 .orElseThrow(AuthException::invalidToken);
         return userMapper.toMeResponse(loaded);
+    }
+
+    private void auditUser(User user, String action) {
+        auditService.record(new AuditRecord(
+                user.getCompany().getId(),
+                null,
+                action,
+                "USER",
+                user.getId().toString(),
+                AuditStatus.SUCCESS,
+                Map.of("email", user.getEmail())));
     }
 
     private TokenResponse issueTokens(User user) {

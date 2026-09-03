@@ -15,9 +15,10 @@ public class CorsConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource(
             @Value("${app.base-url:http://localhost:5173}") String appBaseUrl,
-            @Value("${app.cors.allowed-origins:}") String extraOrigins) {
+            @Value("${app.cors.allowed-origins:}") String extraOrigins,
+            @Value("${app.env:development}") String appEnv) {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(allowedOrigins(appBaseUrl, extraOrigins));
+        config.setAllowedOriginPatterns(allowedOriginPatterns(appBaseUrl, extraOrigins, appEnv));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
@@ -28,7 +29,7 @@ public class CorsConfig {
         return source;
     }
 
-    private List<String> allowedOrigins(String appBaseUrl, String extraOrigins) {
+    private List<String> allowedOriginPatterns(String appBaseUrl, String extraOrigins, String appEnv) {
         List<String> origins = new java.util.ArrayList<>();
         origins.add(appBaseUrl);
         if (extraOrigins != null && !extraOrigins.isBlank()) {
@@ -36,6 +37,10 @@ public class CorsConfig {
                     .map(String::trim)
                     .filter(origin -> !origin.isEmpty())
                     .forEach(origins::add);
+        }
+        if (!"production".equalsIgnoreCase(appEnv) && !"prod".equalsIgnoreCase(appEnv)) {
+            origins.add("http://localhost:*");
+            origins.add("http://127.0.0.1:*");
         }
         return origins;
     }

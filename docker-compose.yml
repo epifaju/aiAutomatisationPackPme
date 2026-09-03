@@ -1,5 +1,5 @@
 # AI Automation Pack for TPE/PME
-# Phase 2 — infrastructure + backend Spring Boot. frontend reste un placeholder (profile app).
+# Phase 11 — infrastructure + backend + frontend React (profile app retiré).
 
 name: ai-automation-pack
 
@@ -165,25 +165,32 @@ services:
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:5173}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
       JWT_SECRET: ${JWT_SECRET:-change-me-jwt-secret-min-32-characters-long}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-change-me-webhook-secret-min-16-chars}
+      AI_GENERATED_EMAIL_AUTO_SEND: ${AI_GENERATED_EMAIL_AUTO_SEND:-false}
+      INVOICE_REMINDER_AUTO_SEND: ${INVOICE_REMINDER_AUTO_SEND:-false}
+      DAILY_REPORT_AUTO_SEND: ${DAILY_REPORT_AUTO_SEND:-false}
+      DAILY_REPORT_FROM: ${DAILY_REPORT_FROM:-rapports@demo.aipack.example}
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-aipack}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-aipack}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-aipack-dev-change-me}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OLLAMA_BASE_URL: http://ollama:11434
       OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2}
-      SMTP_HOST: ${SMTP_HOST:-mailpit}
-      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASSWORD: ${SMTP_PASSWORD:-}
-      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
+      MINIO_ENDPOINT: http://minio:9000
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-minioadmin-change-me}
       MINIO_BUCKET: ${MINIO_BUCKET:-aipack}
-      REDIS_HOST: ${REDIS_HOST:-redis}
-      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     depends_on:
       postgres:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/actuator/health"]
@@ -194,10 +201,12 @@ services:
     networks:
       - aipack
 
-  # Placeholder jusqu'à la Phase 11 (React).
+  # Spring Boot dashboard React — Phase 11.
   frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
     image: ai-automation-pack-frontend:local
-    pull_policy: never
     container_name: aipack-frontend
     restart: unless-stopped
     environment:
@@ -205,10 +214,17 @@ services:
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:5173}
     ports:
       - "${FRONTEND_PORT:-5173}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+      start_period: 20s
     networks:
       - aipack
-    profiles:
-      - app
 
   # reverse-proxy (Traefik/Caddy) : esquissé, non activé au MVP.
 

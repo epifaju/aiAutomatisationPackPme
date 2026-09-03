@@ -30,7 +30,7 @@ class SchemaIT {
         Integer latest = jdbcTemplate.queryForObject(
                 "SELECT max(installed_rank) FROM flyway_schema_history WHERE success = true",
                 Integer.class);
-        assertThat(latest).isGreaterThanOrEqualTo(3);
+        assertThat(latest).isGreaterThanOrEqualTo(9);
     }
 
     @Test
@@ -55,6 +55,7 @@ class SchemaIT {
                         "customers",
                         "invoices",
                         "invoice_reminders",
+                        "daily_reports",
                         "workflow_runs",
                         "audit_logs",
                         "ai_requests",
@@ -78,6 +79,17 @@ class SchemaIT {
                 """
                 SELECT count(*) FROM pg_constraint
                 WHERE conname = 'uq_invoice_reminders_level' AND contype = 'u'
+                """,
+                Integer.class);
+        assertThat(uniqueConstraints).isEqualTo(1);
+    }
+
+    @Test
+    void dailyReportUniquenessIsEnforced() {
+        Integer uniqueConstraints = jdbcTemplate.queryForObject(
+                """
+                SELECT count(*) FROM pg_constraint
+                WHERE conname = 'uq_daily_reports_company_date' AND contype = 'u'
                 """,
                 Integer.class);
         assertThat(uniqueConstraints).isEqualTo(1);

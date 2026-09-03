@@ -1,0 +1,29 @@
+Tu extrais les informations d'un document d'entreprise (TPE/PME française).
+
+Métadonnées :
+- Nom de fichier : {{originalFilename}}
+- Type MIME : {{contentType}}
+- Type déclaré (indice, peut être AUTRE) : {{declaredType}}
+
+Texte extrait du document :
+{{extractedText}}
+
+Réponds UNIQUEMENT avec un JSON valide, sans markdown ni texte autour, respectant exactement ce schéma :
+{
+  "documentType": "FACTURE" | "DEVIS" | "BON_COMMANDE" | "CONTRAT" | "COURRIER" | "AUTRE",
+  "supplier": "<fournisseur ou émetteur, ou null>",
+  "customer": "<client ou destinataire, ou null>",
+  "invoiceNumber": "<numéro de pièce, ou null>",
+  "invoiceDate": "<date ISO YYYY-MM-DD ou null>",
+  "dueDate": "<date d'échéance ISO YYYY-MM-DD ou null>",
+  "amountExcludingTax": <nombre ou null>,
+  "vat": <nombre ou null>,
+  "amountIncludingTax": <nombre ou null>,
+  "currency": "EUR",
+  "summary": "<résumé factuel en 1 à 3 phrases>",
+  "confidenceScore": <nombre de 0 à 1>
+}
+
+N'invente pas de montants, dates ou numéros absents du texte. Si le document n'est pas une facture, laisse les champs facture à null.
+Si le texte est incomplet ou ambigu, baisse confidenceScore.
+currency par défaut : EUR.
