@@ -1,0 +1,110 @@
+{
+  "id": "wf021docextract",
+  "name": "[AIPACK][DOC] Extraction",
+  "description": "Stores then extracts document fields with Tika + Ollama (process=true). · v1.0.0",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "aipack/documents/process",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "wf021docextract-hook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "wf021docextract-hook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst headers = item.headers || {};\nconst provided = headers['x-webhook-secret'] || headers['X-Webhook-Secret'];\nconst expected = (typeof $env !== 'undefined' && $env.WEBHOOK_SECRET) || process.env.WEBHOOK_SECRET;\nif (!expected || provided !== expected) {\n  throw new Error('Unauthorized webhook');\n}\nconst body = item.body && typeof item.body === 'object' ? item.body : item;\nconst companyId = body.companyId || (typeof $env !== 'undefined' && $env.DEMO_COMPANY_ID) || 'aaaaaaaa-0000-4000-8000-000000000001';\nconst payload = { ...body, companyId, process: true };\nreturn [{ json: payload }];"
+      },
+      "id": "wf021docextract-code",
+      "name": "Prepare payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BACKEND_BASE_URL }}/webhook/documents/process",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Webhook-Secret",
+              "value": "={{ $env.WEBHOOK_SECRET }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 180000
+        }
+      },
+      "id": "wf021docextract-http",
+      "name": "Backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare payload": {
+      "main": [
+        [
+          {
+            "node": "Backend",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "wf091errorhandl"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "wf021docextract-v1.0.0",
+  "active": false
+}

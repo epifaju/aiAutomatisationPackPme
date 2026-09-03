@@ -1,0 +1,56 @@
+{
+  "id": "wf091errorhandl",
+  "name": "[AIPACK][ERROR] Handler",
+  "description": "Error workflow (keep inactive). Sanitizes failed execution payloads; no secrets. Invoked via settings.errorWorkflow. · v1.0.1",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "wf091errorhandl-trigger",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst redact = (value) => {\n  if (value && typeof value === 'object') {\n    const out = Array.isArray(value) ? [] : {};\n    for (const [key, nested] of Object.entries(value)) {\n      const lower = String(key).toLowerCase();\n      out[key] = ['password', 'secret', 'token', 'authorization'].some((part) => lower.includes(part))\n        ? '[redacted]'\n        : redact(nested);\n    }\n    return out;\n  }\n  return value;\n};\nreturn [{ json: {\n  workflow: item.workflow?.name || item.workflowName || 'unknown',\n  execution: item.execution?.id || item.executionId || null,\n  error_type: item.execution?.error?.name || 'WORKFLOW_ERROR',\n  error_message: item.execution?.error?.message || 'Workflow execution failed',\n  timestamp: new Date().toISOString(),\n  metadata: redact({ lastNode: item.execution?.lastNodeExecuted || null }),\n} }];"
+      },
+      "id": "wf091errorhandl-code",
+      "name": "Sanitize error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Sanitize error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "wf091errorhandl-v1.0.0",
+  "active": false
+}

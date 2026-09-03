@@ -2,7 +2,7 @@
 
 Pack d’automatisation IA **self-hosted** pour TPE/PME françaises : n8n, IA locale (Ollama) ou API externe, emails, prospects, documents, factures, rapports et audit — installable via Docker Compose.
 
-**Statut actuel : Phase 11 — Frontend.** Dashboard React (Login, Inbox, Leads, Documents, Invoices, Automations, Audit, Settings) branché sur l’API JWT. M01–M06 backend + UI MVP. Prochaine étape : Phase 12 — Tests E2E.
+**Statut actuel : Phase 12 — Tests E2E.** Playwright dans `tests/e2e` (scénarios A–D PRD §40). M01–M06 + frontend MVP. Prochaine étape : Phase 13 — Packaging (CI, scripts, docs).
 
 Le PRD `PRD___AI_Automation_Pack_for_TPE-PME_v1.1.md` est la source de vérité du projet.
 
@@ -62,7 +62,8 @@ Attendre les healthchecks (sans le one-shot MinIO) :
 
 ```bash
 docker compose up -d postgres n8n ollama mailpit minio redis backend frontend --wait
-docker compose up minio-init
+docker compose up minio-init ollama-init n8n-init
+docker compose restart n8n
 ```
 
 4. Contrôler :
@@ -88,6 +89,17 @@ Compiler et tester le backend (Java 21) :
 mvn -f backend/pom.xml verify
 ```
 
+Tests E2E Playwright (Phase 12) — stack réelle démarrée :
+
+```bash
+cd tests/e2e
+npm install
+npx playwright install chromium
+npm test
+```
+
+Détails : `tests/e2e/README.md`.
+
 ## Ports par défaut (hôte)
 
 | Service | Port hôte | URL / usage |
@@ -111,14 +123,22 @@ mvn -f backend/pom.xml verify
 - Backend : `GET /actuator/health` → `UP` (Flyway `V1`–`V9` + seed `R__demo_data`)
 - n8n : `GET /healthz`
 - Mailpit : `GET /api/v1/info` + SMTP
-- Ollama : `GET /api/tags` (aucun modèle téléchargé)
+- Ollama : `GET /api/tags` · `ollama-init` tire `llama3.2`
 - MinIO : `GET /minio/health/live` + bucket `aipack`
 - Frontend : `GET /healthz` → `ok`
 - Redis : `PING`
 
 OpenAPI : `GET /v3/api-docs` · Swagger UI : `/swagger-ui.html`.
 
-Aucun modèle Ollama n’est tiré automatiquement.
+`ollama-init` tire le modèle `${OLLAMA_MODEL}` (défaut `llama3.2`, ~2 Go) puis fait un warm-up. `OLLAMA_KEEP_ALIVE=-1` garde le modèle en mémoire. Premier inferencing CPU : souvent 30–120 s (`AI_TIMEOUT=120s` par appel).
+
+Smoke n8n + Ollama :
+
+```powershell
+$env:N8N_PORT="5677"       # adapter si besoin
+$env:BACKEND_PORT="18080"
+.\scripts\smoke-n8n-ollama.ps1
+```
 
 ## Services Compose
 
@@ -126,7 +146,9 @@ Aucun modèle Ollama n’est tiré automatiquement.
 | --- | --- | --- | --- |
 | `postgres` | PostgreSQL + pgvector | défaut | 1 |
 | `n8n` | Automatisation | défaut | 1 |
+| `n8n-init` | Import des workflows JSON | défaut (one-shot) | 1 |
 | `ollama` | IA locale | défaut | 1 |
+| `ollama-init` | `ollama pull` du modèle | défaut (one-shot) | 1 |
 | `mailpit` | SMTP / UI mails de test | défaut | 1 |
 | `minio` | Stockage objet S3 | défaut | 1 |
 | `minio-init` | Création du bucket (one-shot) | défaut | 1 |
@@ -435,7 +457,7 @@ curl -s -X POST http://localhost:8080/api/v1/emails/<id>/send \
 
 ## Modules MVP
 
-M01 Email Assistant, M02 Lead Management, M03 Document AI, M04 Invoice Reminder, M05 Daily Business Report, M06 Audit et le frontend MVP sont en place. Prochaine étape : Phase 12 — Tests E2E.
+M01 Email Assistant, M02 Lead Management, M03 Document AI, M04 Invoice Reminder, M05 Daily Business Report, M06 Audit et le frontend MVP sont en place. Phase 12 : `tests/e2e` (Playwright). Prochaine étape : Phase 13 — Packaging.
 
 ## Licence
 

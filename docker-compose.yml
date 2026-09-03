@@ -39,7 +39,13 @@ services:
       N8N_SECURE_COOKIE: "false"
       N8N_DIAGNOSTICS_ENABLED: "false"
       N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-change-me-n8n-encryption-key-32b}
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "false"
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      N8N_RUNNERS_ENABLED: "true"
       WEBHOOK_URL: ${N8N_WEBHOOK_URL:-http://localhost:5678/}
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-change-me-webhook-secret-min-16-chars}
+      BACKEND_BASE_URL: http://backend:8080
+      DEMO_COMPANY_ID: ${DEMO_COMPANY_ID:-aaaaaaaa-0000-4000-8000-000000000001}
       DB_TYPE: postgresdb
       DB_POSTGRESDB_HOST: postgres
       DB_POSTGRESDB_PORT: "5432"
@@ -66,6 +72,9 @@ services:
     image: ollama/ollama:0.11.10
     container_name: aipack-ollama
     restart: unless-stopped
+    environment:
+      # Garde le modèle en mémoire (évite un rechargement CPU ~30–120 s à chaque cold start).
+      OLLAMA_KEEP_ALIVE: "${OLLAMA_KEEP_ALIVE:--1}"
     ports:
       - "${OLLAMA_PORT:-11434}:11434"
     volumes:
@@ -76,6 +85,28 @@ services:
       timeout: 10s
       retries: 10
       start_period: 40s
+    networks:
+      - aipack
+
+  ollama-init:
+    image: ollama/ollama:0.11.10
+    container_name: aipack-ollama-init
+    restart: "no"
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        set -eu
+        echo "Pulling Ollama model $$OLLAMA_MODEL..."
+        ollama pull "$$OLLAMA_MODEL"
+        echo "Warming $$OLLAMA_MODEL (first inference)..."
+        ollama run "$$OLLAMA_MODEL" "Réponds uniquement: OK" >/tmp/ollama-warm.txt 2>&1 || true
+        echo "Ollama model ready."
     networks:
       - aipack
 
@@ -175,6 +206,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-aipack-dev-change-me}
       OLLAMA_BASE_URL: http://ollama:11434
       OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2}
+      AI_TIMEOUT: ${AI_TIMEOUT:-120s}
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"
       SMTP_USER: ${SMTP_USER:-}
@@ -191,6 +223,10 @@ services:
       postgres:
         condition: service_healthy
       minio:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/actuator/health"]
@@ -223,6 +259,30 @@ services:
       timeout: 5s
       retries: 8
       start_period: 20s
+    networks:
+      - aipack
+
+  n8n-init:
+    image: n8nio/n8n:1.107.4
+    container_name: aipack-n8n-init
+    restart: "no"
+    depends_on:
+      n8n:
+        condition: service_healthy
+    environment:
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-change-me-n8n-encryption-key-32b}
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "false"
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: "5432"
+      DB_POSTGRESDB_DATABASE: ${N8N_DB:-n8n}
+      DB_POSTGRESDB_USER: ${POSTGRES_USER:-aipack}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD:-aipack-dev-change-me}
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n/workflows:/workflows:ro
+      - ./n8n/import.sh:/import.sh:ro
+    entrypoint: ["/bin/sh", "/import.sh"]
     networks:
       - aipack
 

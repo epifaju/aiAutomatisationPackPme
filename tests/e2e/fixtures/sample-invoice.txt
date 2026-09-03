@@ -1,0 +1,8 @@
+FACTURE N° DEMO-E2E-001
+Fournisseur: Fournisseur Démo E2E SAS
+Date facture: 2026-08-01
+Date échéance: 2026-08-31
+Montant HT: 100.00
+TVA: 20.00
+Montant TTC: 120.00
+Devise: EUR

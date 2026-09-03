@@ -32,7 +32,7 @@ app:
     from-address: ${DAILY_REPORT_FROM:rapports@demo.aipack.example}
   ai:
     provider: ${AI_PROVIDER:ollama}
-    timeout: ${AI_TIMEOUT:30s}
+    timeout: ${AI_TIMEOUT:120s}
     ollama:
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
       model: ${OLLAMA_MODEL:llama3.2}

@@ -47,10 +47,16 @@ export function DocumentsPage() {
           </Select>
         </Field>
         <Button disabled={!file || upload.isPending} onClick={() => upload.mutate()}>
-          Déposer
+          {upload.isPending ? "Dépôt…" : "Déposer"}
         </Button>
       </Card>
       {upload.error ? <ErrorText error={upload.error} /> : null}
+      {upload.isSuccess && upload.data ? (
+        <p className="mb-4 rounded-md bg-pine-light px-3 py-2 text-sm text-pine-dark">
+          Document déposé : {upload.data.originalFilename} · statut {upload.data.status}
+          {upload.data.extraction?.status ? ` (extraction ${upload.data.extraction.status})` : ""}.
+        </p>
+      ) : null}
       {act.error ? <ErrorText error={act.error} /> : null}
       <div className="grid gap-4">
         {(list.data?.content ?? []).map((doc) => (
