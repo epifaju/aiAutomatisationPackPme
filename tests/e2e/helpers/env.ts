@@ -42,7 +42,7 @@ export function loadE2eEnv(): E2eEnv {
     demoCompanyId: process.env.DEMO_COMPANY_ID || "aaaaaaaa-0000-4000-8000-000000000001",
     demoEmail: "demo.admin@aipack.example",
     demoPassword: "DemoAdmin!2026",
-    aiTimeoutMs: Number(process.env.E2E_AI_TIMEOUT_MS || 300_000),
+    aiTimeoutMs: Number(process.env.E2E_AI_TIMEOUT_MS || 420_000),
   };
   return cached;
 }

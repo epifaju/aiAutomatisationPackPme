@@ -22,11 +22,14 @@ export default defineConfig(({ mode }) => {
         "/api": {
           target: apiTarget,
           changeOrigin: true,
+          timeout: 360_000,
+          proxyTimeout: 360_000,
           configure(proxy) {
             proxy.on("error", (_err, _req, res) => {
-              if (res && !res.headersSent && "writeHead" in res) {
-                res.writeHead(502, { "Content-Type": "application/json; charset=utf-8" });
-                res.end(
+              const httpRes = res as import("node:http").ServerResponse | undefined;
+              if (httpRes && !httpRes.headersSent && typeof httpRes.writeHead === "function") {
+                httpRes.writeHead(502, { "Content-Type": "application/json; charset=utf-8" });
+                httpRes.end(
                   JSON.stringify({
                     success: false,
                     error: {

@@ -40,8 +40,10 @@ n8n/credentials/*
 ollama/models/*
 !ollama/models/.gitkeep
 
-# Données locales / volumes
+# Données locales / volumes / packaging
 data/
+backups/
+dist/
 *.sqlite
 *.db
 

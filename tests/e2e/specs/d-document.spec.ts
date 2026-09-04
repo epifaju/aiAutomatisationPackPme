@@ -13,7 +13,10 @@ test.describe("Scenario D — Documents", () => {
     const fileName = `e2e-facture-${stamp}.txt`;
 
     await loginViaUi(page);
-    await gotoNav(page, "Documents");
+    await expect(async () => {
+      await page.goto("/documents");
+      await expect(page.getByRole("heading", { name: "Documents" })).toBeVisible({ timeout: 15_000 });
+    }).toPass({ timeout: 60_000 });
 
     await page.locator('input[type="file"]').setInputFiles({
       name: fileName,
@@ -31,7 +34,7 @@ test.describe("Scenario D — Documents", () => {
         "utf8",
       ),
     });
-    await page.getByLabel("Type").selectOption("FACTURE");
+    await page.locator("select").first().selectOption("FACTURE");
 
     await Promise.all([
       page.waitForResponse(

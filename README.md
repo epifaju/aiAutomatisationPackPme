@@ -2,17 +2,19 @@
 
 Pack d’automatisation IA **self-hosted** pour TPE/PME françaises : n8n, IA locale (Ollama) ou API externe, emails, prospects, documents, factures, rapports et audit — installable via Docker Compose.
 
-**Statut actuel : Phase 12 — Tests E2E.** Playwright dans `tests/e2e` (scénarios A–D PRD §40). M01–M06 + frontend MVP. Prochaine étape : Phase 13 — Packaging (CI, scripts, docs).
+**Statut actuel : Phase 13 — Packaging.** CI GitHub Actions, scripts install/backup/restore, documentation `docs/`, package release. M01–M06 + frontend MVP + E2E Playwright. MVP packaging complet selon PRD §13 / §40bis.
 
 Le PRD `PRD___AI_Automation_Pack_for_TPE-PME_v1.1.md` est la source de vérité du projet.
 
 ## Objectif d’installation (cible MVP)
 
 ```bash
-docker compose up -d
+./scripts/install.sh          # Linux / macOS / Git Bash
+# ou
+.\scripts\install.ps1         # Windows PowerShell
 ```
 
-Cette commande démarre l’infrastructure, le backend, le frontend et applique les migrations Flyway + le seed.
+Équivalent manuel : `docker compose up -d` (+ inits). Voir [docs/installation.md](docs/installation.md).
 
 ## Stack imposée (PRD §5)
 
@@ -171,7 +173,7 @@ ai-automation-pack/
 ├── .gitignore
 ├── .gitattributes
 │
-├── .github/workflows/          # CI — Phase 13
+├── .github/workflows/          # backend-ci, frontend-ci, e2e
 ├── backend/
 │   ├── pom.xml
 │   ├── Dockerfile
@@ -191,8 +193,8 @@ ai-automation-pack/
 ├── ollama/
 │   ├── models/                 # gitignoré (poids)
 │   └── prompts/                # prompts IA (hors code)
-├── scripts/                    # install / backup — Phase 13
-├── docs/                       # documentation — Phase 13
+├── scripts/                    # install, healthcheck, backup, restore, package-release
+├── docs/                       # installation, config, architecture, security, …
 └── tests/
     ├── integration/
     └── e2e/
@@ -455,9 +457,19 @@ curl -s -X POST http://localhost:8080/api/v1/emails/<id>/send \
 5. Aucun secret dans le code source
 6. Installation reproductible
 
+## Packaging (Phase 13)
+
+| Élément | Emplacement |
+| --- | --- |
+| CI backend / frontend / E2E | `.github/workflows/` |
+| Install + healthcheck | `scripts/install.*`, `scripts/healthcheck.*` |
+| Backup / restore | `scripts/backup.*`, `scripts/restore.*` |
+| Archive release | `scripts/package-release.*` → `dist/` |
+| Documentation | [docs/installation.md](docs/installation.md), [configuration.md](docs/configuration.md), [architecture.md](docs/architecture.md), [security.md](docs/security.md), [troubleshooting.md](docs/troubleshooting.md), [workflows.md](docs/workflows.md) |
+
 ## Modules MVP
 
-M01 Email Assistant, M02 Lead Management, M03 Document AI, M04 Invoice Reminder, M05 Daily Business Report, M06 Audit et le frontend MVP sont en place. Phase 12 : `tests/e2e` (Playwright). Prochaine étape : Phase 13 — Packaging.
+M01–M06, frontend MVP, E2E Playwright (Phase 12) et packaging (Phase 13) sont en place.
 
 ## Licence
 

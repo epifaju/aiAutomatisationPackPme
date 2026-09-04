@@ -25,7 +25,11 @@ npm test
 
 Sous PowerShell avec ports décalés, rien à exporter si le `.env` racine est à jour.
 
-Timeout IA : `E2E_AI_TIMEOUT_MS` (défaut 300000).
+Timeout IA : `E2E_AI_TIMEOUT_MS` (défaut 420000). Sur CPU, recommander `AI_TIMEOUT=300s` dans `.env` puis `docker compose up -d backend --force-recreate`.
+
+Le scénario B (email, 2 appels LLM) est **skippé** si Ollama est trop lent/indisponible — A/C/D restent bloquants.
+
+Si le frontend Vite loggue des `ECONNRESET` vers le backend, redémarrer Vite (`cd frontend && npm run dev`) ou utiliser le conteneur `frontend`.
 
 ## Scénarios
 

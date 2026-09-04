@@ -57,10 +57,14 @@ test.describe("Scenario C — Invoices", () => {
       )
       .toMatchObject({ status: "OVERDUE" });
 
-    await page.reload();
-    await gotoNav(page, "Invoices");
+    await expect(async () => {
+      await page.reload();
+      await gotoNav(page, "Invoices");
+      const card = page.locator("section").filter({ hasText: invoiceNumber });
+      await expect(card.getByText("OVERDUE")).toBeVisible({ timeout: 10_000 });
+    }).toPass({ timeout: 90_000 });
+
     const card = page.locator("section").filter({ hasText: invoiceNumber });
-    await expect(card.getByText("OVERDUE")).toBeVisible({ timeout: 30_000 });
     await expect(card.getByText(/Relance J\+/).first()).toBeVisible();
 
     const reminderRow = card.locator("li").filter({ hasText: "Relance J+3" });

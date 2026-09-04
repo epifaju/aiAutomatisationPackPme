@@ -71,7 +71,7 @@ export function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
   );
 }
 
-export function Badge({ status, children }: { status?: string; children: ReactNode }) {
+export function Badge({ status, children }: { status?: string | null; children: ReactNode }) {
   const tone = statusTone(status ?? String(children));
   return (
     <span

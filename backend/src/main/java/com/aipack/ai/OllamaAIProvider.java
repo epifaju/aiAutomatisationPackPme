@@ -34,10 +34,16 @@ public class OllamaAIProvider implements AIProvider {
     public AIResponse generate(AIRequest request) {
         long start = System.nanoTime();
         try {
+            // num_predict limite la longueur de sortie (JSON court) — crucial sur CPU lent.
             OllamaGenerateResponse body = restClient
                     .post()
                     .uri("/api/generate")
-                    .body(new OllamaGenerateRequest(model, request.prompt(), false, "json"))
+                    .body(new OllamaGenerateRequest(
+                            model,
+                            request.prompt(),
+                            false,
+                            "json",
+                            new OllamaOptions(256, 0.2)))
                     .retrieve()
                     .body(OllamaGenerateResponse.class);
             int latency = (int) Duration.ofNanos(System.nanoTime() - start).toMillis();
@@ -56,7 +62,10 @@ public class OllamaAIProvider implements AIProvider {
         }
     }
 
-    private record OllamaGenerateRequest(String model, String prompt, boolean stream, String format) {}
+    private record OllamaGenerateRequest(
+            String model, String prompt, boolean stream, String format, OllamaOptions options) {}
+
+    private record OllamaOptions(int num_predict, double temperature) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     private record OllamaGenerateResponse(String response) {}

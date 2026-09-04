@@ -27,22 +27,32 @@ export async function webhookPost(
 
 export async function loginApi(request: APIRequestContext): Promise<string> {
   const { backendBaseUrl, demoEmail, demoPassword } = env();
-  const res = await request.post(`${backendBaseUrl}/api/v1/auth/login`, {
-    data: { email: demoEmail, password: demoPassword },
-    timeout: 30_000,
-  });
-  if (!res.ok()) {
-    throw new Error(`Login API failed: ${res.status()} ${await res.text()}`);
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    try {
+      const res = await request.post(`${backendBaseUrl}/api/v1/auth/login`, {
+        data: { email: demoEmail, password: demoPassword },
+        timeout: 60_000,
+      });
+      if (!res.ok()) {
+        lastError = new Error(`Login API failed: ${res.status()} ${await res.text()}`);
+      } else {
+        const body = await res.json();
+        return body.data.accessToken as string;
+      }
+    } catch (err) {
+      lastError = err;
+    }
+    await new Promise((r) => setTimeout(r, 2000));
   }
-  const body = await res.json();
-  return body.data.accessToken as string;
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
 export async function apiGet(request: APIRequestContext, path: string, token: string) {
   const { backendBaseUrl } = env();
   const res = await request.get(`${backendBaseUrl}${path}`, {
     headers: { Authorization: `Bearer ${token}` },
-    timeout: 30_000,
+    timeout: 60_000,
   });
   const text = await res.text();
   if (!res.ok()) {

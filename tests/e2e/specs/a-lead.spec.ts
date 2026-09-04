@@ -32,8 +32,11 @@ test.describe("Scenario A — Leads", () => {
     await waitForAudit(request, token, { entityType: "LEAD", entityId: leadId }, 60_000);
 
     await loginViaUi(page);
-    await gotoNav(page, "Leads");
-    await expect(page.getByText(fullName)).toBeVisible({ timeout: 30_000 });
+    await expect(async () => {
+      await page.goto("/leads");
+      await expect(page.getByRole("heading", { name: "Leads" })).toBeVisible();
+      await expect(page.getByText(fullName)).toBeVisible({ timeout: 15_000 });
+    }).toPass({ timeout: 90_000 });
 
     const row = page.locator("tr").filter({ hasText: fullName });
     await row.getByRole("button", { name: "Qualifier" }).click();

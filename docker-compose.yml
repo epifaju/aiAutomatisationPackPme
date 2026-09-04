@@ -97,7 +97,7 @@ services:
         condition: service_healthy
     environment:
       OLLAMA_HOST: http://ollama:11434
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:1b}
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
@@ -205,8 +205,8 @@ services:
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-aipack}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-aipack-dev-change-me}
       OLLAMA_BASE_URL: http://ollama:11434
-      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2}
-      AI_TIMEOUT: ${AI_TIMEOUT:-120s}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:1b}
+      AI_TIMEOUT: ${AI_TIMEOUT:-900s}
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"
       SMTP_USER: ${SMTP_USER:-}
