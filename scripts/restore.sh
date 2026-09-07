@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Restore depuis une archive produite par backup.sh
 # Usage: ./scripts/restore.sh <répertoire_backup>
-# Restaure PostgreSQL (aipack + n8n) et le volume n8n_data.
+# Restaure PostgreSQL (aipack + n8n), volumes n8n_data et minio_data.
 # N’écrase pas .env sauf si RESTORE_ENV=1 et env.secrets présent.
 set -euo pipefail
 
@@ -19,10 +19,25 @@ POSTGRES_DB="$(grep -E '^POSTGRES_DB=' .env 2>/dev/null | cut -d= -f2- || echo a
 N8N_DB="$(grep -E '^N8N_DB=' .env 2>/dev/null | cut -d= -f2- || echo n8n)"
 PROJECT="$(docker compose config --format json 2>/dev/null | sed -n 's/.*"name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n1)"
 PROJECT="${PROJECT:-ai-automation-pack}"
-VOL="${PROJECT}_n8n_data"
+
+restore_volume() {
+  local name="$1"
+  local archive="$2"
+  local service="$3"
+  local vol="${PROJECT}_${name}"
+  if [[ ! -f "$SRC/$archive" ]]; then
+    echo "→ Skip ${name} (pas de $archive)"
+    return
+  fi
+  echo "→ Restore volume ${name}"
+  docker compose stop "$service" 2>/dev/null || true
+  docker volume create "$vol" >/dev/null 2>&1 || true
+  docker run --rm -v "${vol}:/data" -v "$(cd "$SRC" && pwd):/backup:ro" alpine:3.20 \
+    sh -c "rm -rf /data/* /data/.[!.]* 2>/dev/null; tar xzf /backup/${archive} -C /data"
+}
 
 echo "==> Restore depuis $SRC"
-echo "Les bases $POSTGRES_DB et $N8N_DB seront écrasées. Ctrl+C pour annuler (5 s)."
+echo "Les bases $POSTGRES_DB / $N8N_DB et volumes n8n/minio seront écrasés. Ctrl+C pour annuler (5 s)."
 sleep 5
 
 docker compose up -d postgres --wait
@@ -43,13 +58,8 @@ if [[ -f "$SRC/postgres-n8n.dump" ]]; then
     < "$SRC/postgres-n8n.dump" || true
 fi
 
-if [[ -f "$SRC/n8n_data.tar.gz" ]]; then
-  echo "→ Restore volume n8n_data"
-  docker compose stop n8n 2>/dev/null || true
-  docker volume create "$VOL" >/dev/null 2>&1 || true
-  docker run --rm -v "${VOL}:/data" -v "$(cd "$SRC" && pwd):/backup:ro" alpine:3.20 \
-    sh -c "rm -rf /data/* /data/.[!.]* 2>/dev/null; tar xzf /backup/n8n_data.tar.gz -C /data"
-fi
+restore_volume "n8n_data" "n8n_data.tar.gz" "n8n"
+restore_volume "minio_data" "minio_data.tar.gz" "minio"
 
 if [[ "${RESTORE_ENV:-0}" == "1" && -f "$SRC/env.secrets" ]]; then
   cp "$SRC/env.secrets" .env
@@ -58,6 +68,7 @@ fi
 
 echo "→ Redémarrage stack"
 docker compose up -d postgres n8n ollama mailpit minio redis backend frontend --wait
+docker compose up minio-init || true
 docker compose restart n8n || true
 
 echo "Restore terminé. Vérifiez avec scripts/healthcheck.sh"

@@ -49,6 +49,7 @@ Contenu typique d’un backup :
 
 - `postgres-aipack.dump` / `postgres-n8n.dump`
 - `n8n_data.tar.gz` (volume workflows / credentials chiffrés n8n)
+- `minio_data.tar.gz` (fichiers documents MinIO — snapshot cohérent, MinIO est mis en pause brièvement)
 - `env.example`, `docker-compose.yml`, `MANIFEST.txt`
 - optionnel : `env.secrets`
 
@@ -66,7 +67,7 @@ RESTORE_ENV=1 ./scripts/restore.sh ...   # si env.secrets présent
 .\scripts\restore.ps1 -BackupDir ... -RestoreEnv
 ```
 
-MinIO (fichiers documents) n’est pas inclus dans le backup MVP — prévoir une copie séparée du volume `minio_data` si nécessaire.
+Après restore, `minio-init` est relancé pour s’assurer que le bucket applicatif existe.
 
 ## Package release
 

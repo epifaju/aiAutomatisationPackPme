@@ -1,4 +1,4 @@
-# Backup PostgreSQL (aipack + n8n) + n8n_data volume
+# Backup PostgreSQL (aipack + n8n) + volumes n8n_data + minio_data
 # Usage: .\scripts\backup.ps1 [-OutDir backups] [-IncludeEnv]
 param(
   [string]$OutDir = "",
@@ -20,6 +20,22 @@ function Get-EnvValue([string]$Key, [string]$Default) {
     if ($line -match "^$Key=(.+)$") { return $Matches[1].Trim() }
   }
   return $Default
+}
+
+function Backup-Volume([string]$Name, [string]$Archive, [System.Collections.Generic.List[string]]$Manifest) {
+  $vol = "${Project}_${Name}"
+  Write-Host "-> Volume $Name"
+  docker volume inspect $vol 2>$null | Out-Null
+  if ($LASTEXITCODE -eq 0) {
+    docker run --rm -v "${vol}:/data:ro" -v "${Out}:/backup" alpine:3.20 `
+      tar czf "/backup/$Archive" -C /data .
+    if ($LASTEXITCODE -ne 0) { throw "backup volume $Name failed" }
+    $Manifest.Add("includes_${Name}=true") | Out-Null
+  }
+  else {
+    Write-Warning "Volume $vol not found - skip $Name"
+    $Manifest.Add("includes_${Name}=false") | Out-Null
+  }
 }
 
 $PostgresUser = Get-EnvValue "POSTGRES_USER" "aipack"
@@ -45,17 +61,28 @@ Write-Host "-> PostgreSQL ($N8nDb)"
 cmd /c "docker compose exec -T postgres pg_dump -U $PostgresUser -d $N8nDb --no-owner --format=custom > `"$dumpN8n`""
 if ($LASTEXITCODE -ne 0) { throw "pg_dump n8n failed" }
 
-Write-Host "-> Volume n8n_data"
-$Vol = "${Project}_n8n_data"
-$volOk = $false
-docker volume inspect $Vol 2>$null | Out-Null
-if ($LASTEXITCODE -eq 0) { $volOk = $true }
-if ($volOk) {
-  docker run --rm -v "${Vol}:/data:ro" -v "${Out}:/backup" alpine:3.20 `
-    tar czf /backup/n8n_data.tar.gz -C /data .
+$manifest = [System.Collections.Generic.List[string]]::new()
+$manifest.Add("created_at_utc=$Stamp") | Out-Null
+$manifest.Add("project=$Project") | Out-Null
+$manifest.Add("postgres_db=$PostgresDb") | Out-Null
+$manifest.Add("n8n_db=$N8nDb") | Out-Null
+$manifest.Add("includes_env=false") | Out-Null
+
+Backup-Volume -Name "n8n_data" -Archive "n8n_data.tar.gz" -Manifest $manifest
+
+Write-Host "-> Pause MinIO for consistent snapshot"
+$prevEap = $ErrorActionPreference
+$ErrorActionPreference = "SilentlyContinue"
+docker compose stop minio | Out-Null
+$ErrorActionPreference = $prevEap
+try {
+  Backup-Volume -Name "minio_data" -Archive "minio_data.tar.gz" -Manifest $manifest
 }
-else {
-  Write-Warning "Volume $Vol not found - skip n8n_data"
+finally {
+  $ErrorActionPreference = "SilentlyContinue"
+  docker compose start minio | Out-Null
+  docker compose up -d minio --wait | Out-Null
+  $ErrorActionPreference = $prevEap
 }
 
 Write-Host "-> Config (no secrets by default)"
@@ -65,15 +92,11 @@ if (Test-Path "docker-compose.dev.yml") {
   Copy-Item "docker-compose.dev.yml" (Join-Path $Out "docker-compose.dev.yml")
 }
 
-$manifest = [System.Collections.Generic.List[string]]::new()
-$manifest.Add("created_at_utc=$Stamp") | Out-Null
-$manifest.Add("project=$Project") | Out-Null
-$manifest.Add("postgres_db=$PostgresDb") | Out-Null
-$manifest.Add("n8n_db=$N8nDb") | Out-Null
-$manifest.Add("includes_env=false") | Out-Null
 if ($IncludeEnv -and (Test-Path ".env")) {
   Copy-Item ".env" (Join-Path $Out "env.secrets")
-  $manifest.Add("includes_env=true") | Out-Null
+  for ($i = 0; $i -lt $manifest.Count; $i++) {
+    if ($manifest[$i] -like "includes_env=*") { $manifest[$i] = "includes_env=true" }
+  }
   Write-Warning ".env copied in cleartext to env.secrets - protect this archive."
 }
 else {

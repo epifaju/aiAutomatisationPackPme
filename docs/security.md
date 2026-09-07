@@ -8,7 +8,7 @@
 4. **Webhooks** — `X-Webhook-Secret` (`WEBHOOK_SECRET`).
 5. **Audit** — journal append-only ; métadonnées filtrées (pas de mots de passe / tokens).
 6. **n8n** — `N8N_ENCRYPTION_KEY` stable ; dossier `n8n/credentials/` non versionné.
-7. **Backups** — `.env` exclu par défaut ; `INCLUDE_ENV=1` / `-IncludeEnv` uniquement si l’archive est chiffrée / stockée de façon sûre.
+7. **Backups** — `.env` exclu par défaut ; `INCLUDE_ENV=1` / `-IncludeEnv` uniquement si l’archive est chiffrée / stockée de façon sûre. Postgres + `n8n_data` + `minio_data` (documents) sont inclus.
 
 ## Checklist avant production
 

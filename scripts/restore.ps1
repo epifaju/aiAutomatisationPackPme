@@ -23,6 +23,24 @@ function Get-EnvValue([string]$Key, [string]$Default) {
   return $Default
 }
 
+function Restore-Volume([string]$Name, [string]$Archive, [string]$Service) {
+  $tar = Join-Path $Src $Archive
+  if (-not (Test-Path $tar)) {
+    Write-Host "-> Skip $Name (no $Archive)"
+    return
+  }
+  $vol = "${Project}_${Name}"
+  Write-Host "-> Restore volume $Name"
+  $prevEap = $ErrorActionPreference
+  $ErrorActionPreference = "SilentlyContinue"
+  docker compose stop $Service | Out-Null
+  $ErrorActionPreference = $prevEap
+  docker volume create $vol 2>$null | Out-Null
+  docker run --rm -v "${vol}:/data" -v "${Src}:/backup:ro" alpine:3.20 `
+    sh -c "rm -rf /data/* /data/.[!.]* 2>/dev/null; tar xzf /backup/$Archive -C /data"
+  if ($LASTEXITCODE -ne 0) { throw "restore volume $Name failed" }
+}
+
 $PostgresUser = Get-EnvValue "POSTGRES_USER" "aipack"
 $PostgresDb = Get-EnvValue "POSTGRES_DB" "aipack"
 $N8nDb = Get-EnvValue "N8N_DB" "n8n"
@@ -32,10 +50,9 @@ try {
   if ($cfg.name) { $Project = $cfg.name }
 }
 catch { }
-$Vol = "${Project}_n8n_data"
 
 Write-Host "==> Restore from $Src"
-Write-Host "Databases $PostgresDb and $N8nDb will be overwritten. Waiting 5s..."
+Write-Host "Databases and n8n/minio volumes will be overwritten. Waiting 5s..."
 Start-Sleep -Seconds 5
 
 docker compose up -d postgres --wait
@@ -58,14 +75,8 @@ if (Test-Path $dumpN8n) {
   cmd /c "docker compose exec -T postgres pg_restore -U $PostgresUser -d $N8nDb --no-owner < `"$dumpN8n`""
 }
 
-$n8nTar = Join-Path $Src "n8n_data.tar.gz"
-if (Test-Path $n8nTar) {
-  Write-Host "-> Restore volume n8n_data"
-  docker compose stop n8n 2>$null
-  docker volume create $Vol 2>$null | Out-Null
-  docker run --rm -v "${Vol}:/data" -v "${Src}:/backup:ro" alpine:3.20 `
-    sh -c "rm -rf /data/* /data/.[!.]* 2>/dev/null; tar xzf /backup/n8n_data.tar.gz -C /data"
-}
+Restore-Volume -Name "n8n_data" -Archive "n8n_data.tar.gz" -Service "n8n"
+Restore-Volume -Name "minio_data" -Archive "minio_data.tar.gz" -Service "minio"
 
 $envSecrets = Join-Path $Src "env.secrets"
 if ($RestoreEnv -and (Test-Path $envSecrets)) {
@@ -75,6 +86,7 @@ if ($RestoreEnv -and (Test-Path $envSecrets)) {
 
 Write-Host "-> Restart stack"
 docker compose up -d postgres n8n ollama mailpit minio redis backend frontend --wait
+docker compose up minio-init 2>$null
 docker compose restart n8n
 
 Write-Host "Restore done. Verify with .\scripts\healthcheck.ps1"
