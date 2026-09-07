@@ -10,6 +10,8 @@ import com.aipack.invoice.InvoiceException;
 import com.aipack.lead.LeadException;
 import com.aipack.report.ReportException;
 import com.aipack.settings.SettingsException;
+import com.aipack.virus.MalwareDetectedException;
+import com.aipack.virus.VirusScanUnavailableException;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -70,6 +72,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(SettingsException.class)
     public ResponseEntity<ApiResponse<Void>> handleSettings(SettingsException ex) {
+        return ResponseEntity.status(ex.getStatus()).body(ApiResponse.failure(ApiError.of(ex.getCode(), ex.getMessage())));
+    }
+
+    @ExceptionHandler(MalwareDetectedException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMalware(MalwareDetectedException ex) {
+        return ResponseEntity.status(ex.getStatus()).body(ApiResponse.failure(ApiError.of(ex.getCode(), ex.getMessage())));
+    }
+
+    @ExceptionHandler(VirusScanUnavailableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleVirusScanUnavailable(VirusScanUnavailableException ex) {
         return ResponseEntity.status(ex.getStatus()).body(ApiResponse.failure(ApiError.of(ex.getCode(), ex.getMessage())));
     }
 

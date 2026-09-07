@@ -18,6 +18,7 @@ import com.aipack.identity.CompanySettings;
 import com.aipack.identity.CompanySettingsRepository;
 import com.aipack.storage.ObjectStorage;
 import com.aipack.storage.StorageException;
+import com.aipack.virus.VirusScanner;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.Predicate;
 import java.math.BigDecimal;
@@ -60,6 +61,7 @@ public class DocumentService {
     private final DocumentExtractionParser extractionParser;
     private final DocumentHeuristicExtractor heuristicExtractor;
     private final DocumentProperties documentProperties;
+    private final VirusScanner virusScanner;
 
     public DocumentService(
             DocumentRepository documentRepository,
@@ -76,7 +78,8 @@ public class DocumentService {
             PromptCatalog promptCatalog,
             DocumentExtractionParser extractionParser,
             DocumentHeuristicExtractor heuristicExtractor,
-            DocumentProperties documentProperties) {
+            DocumentProperties documentProperties,
+            VirusScanner virusScanner) {
         this.documentRepository = documentRepository;
         this.extractionRepository = extractionRepository;
         this.companyRepository = companyRepository;
@@ -92,6 +95,7 @@ public class DocumentService {
         this.extractionParser = extractionParser;
         this.heuristicExtractor = heuristicExtractor;
         this.documentProperties = documentProperties;
+        this.virusScanner = virusScanner;
     }
 
     @Transactional(readOnly = true)
@@ -311,6 +315,7 @@ public class DocumentService {
         if (content.length > documentProperties.maxSizeOrDefault()) {
             throw DocumentException.fileTooLarge();
         }
+        virusScanner.assertClean(content, originalFilename);
         DocumentMimeDetector.DetectedFile detected = mimeDetector.detect(content, originalFilename);
         String checksum = sha256(content);
         var existing = documentRepository.findByCompany_IdAndChecksumSha256(companyId, checksum);

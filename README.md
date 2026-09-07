@@ -160,9 +160,10 @@ $env:BACKEND_PORT="18080"
 | `redis` | Cache / files légères | défaut | 1 |
 | `backend` | API Spring Boot | défaut | 2 |
 | `frontend` | Dashboard React | défaut | 11 |
+| `clamav` | Antivirus clamd | `clamav` (off) | V2 |
 | `reverse-proxy` | Caddy (TLS / entrée unique) | `proxy` (off) | V2 / prod |
 
-Le reverse proxy Caddy est **optionnel** (`--profile proxy`) — voir [docs/proxy.md](docs/proxy.md). Redis n’est une dépendance d’aucun autre service : le reste du stack démarre même si Redis est arrêté.
+Le reverse proxy Caddy est **optionnel** (`--profile proxy`) — voir [docs/proxy.md](docs/proxy.md). ClamAV est **optionnel** (`--profile clamav` + `CLAMAV_ENABLED=true`) — voir [docs/security.md](docs/security.md). Redis n’est une dépendance d’aucun autre service : le reste du stack démarre même si Redis est arrêté.
 
 ## Arborescence
 
@@ -395,7 +396,7 @@ curl -s -X POST http://localhost:8080/webhook/invoices/reminder \
 
 ## Documents (Phase 8)
 
-Upload scoped à l’entreprise, stockage objet MinIO (jamais en `bytea`). L’extraction de texte passe par Apache Tika (PDF, PNG, JPEG, TXT). Le parsing IA utilise `AIProvider` et le prompt `ollama/prompts/document-extraction.txt`. MIME contrôlé par **magic bytes** (Tika), pas seulement l’extension. Taille max : 20 Mo. Un même fichier (checksum SHA-256) n’est pas recréé.
+Upload scoped à l’entreprise, stockage objet MinIO (jamais en `bytea`). L’extraction de texte passe par Apache Tika (PDF, PNG, JPEG, TXT). Le parsing IA utilise `AIProvider` et le prompt `ollama/prompts/document-extraction.txt`. MIME contrôlé par **magic bytes** (Tika), pas seulement l’extension. Taille max : 20 Mo. Un même fichier (checksum SHA-256) n’est pas recréé. Scan antivirus optionnel (ClamAV) avant stockage si `CLAMAV_ENABLED=true`.
 
 Si `confidenceScore` < seuil entreprise (`document_confidence_threshold`, 0,700 par défaut) → `REVIEW_REQUIRED`. OCR (Tesseract `fra+eng` dans l’image backend) : PDF/PNG/JPEG scannés sont OCRisés si peu de texte embarqué ; si l’OCR reste vide → revue humaine, l’IA n’est pas appelée. Parsing JSON impossible → `ERROR` / `AI_PARSING_ERROR`. Ollama indisponible → `ERROR` / `AI_UNAVAILABLE`. Variables : `DOCUMENT_OCR_ENABLED`, `DOCUMENT_OCR_LANGUAGES`, `DOCUMENT_OCR_MIN_CHARS`.
 

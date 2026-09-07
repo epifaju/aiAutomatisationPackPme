@@ -222,6 +222,11 @@ services:
       MINIO_BUCKET: ${MINIO_BUCKET:-aipack}
       REDIS_HOST: redis
       REDIS_PORT: "6379"
+      CLAMAV_ENABLED: ${CLAMAV_ENABLED:-false}
+      CLAMAV_HOST: ${CLAMAV_HOST:-clamav}
+      CLAMAV_PORT: ${CLAMAV_PORT:-3310}
+      CLAMAV_TIMEOUT: ${CLAMAV_TIMEOUT:-10s}
+      CLAMAV_FAIL_OPEN: ${CLAMAV_FAIL_OPEN:-true}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     depends_on:
@@ -233,6 +238,9 @@ services:
         condition: service_healthy
       ollama:
         condition: service_healthy
+      clamav:
+        condition: service_healthy
+        required: false
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/actuator/health"]
       interval: 10s
@@ -291,6 +299,27 @@ services:
     networks:
       - aipack
 
+  # ClamAV — optionnel, profile "clamav" (PRD V2 ; off par défaut)
+  clamav:
+    profiles: ["clamav"]
+    image: clamav/clamav:1.4.2
+    container_name: aipack-clamav
+    restart: unless-stopped
+    environment:
+      CLAMAV_NO_FRESHCLAMD: "false"
+    ports:
+      - "${CLAMAV_HOST_PORT:-3310}:3310"
+    volumes:
+      - clamav_data:/var/lib/clamav
+    healthcheck:
+      test: ["CMD-SHELL", "clamdscan --ping || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 180s
+    networks:
+      - aipack
+
   # reverse-proxy (Caddy) — optionnel, profile "proxy" (PRD : esquissé, off par défaut)
   reverse-proxy:
     profiles: ["proxy"]
@@ -331,5 +360,6 @@ volumes:
   ollama_data:
   minio_data:
   redis_data:
+  clamav_data:
   caddy_data:
   caddy_config:

@@ -43,4 +43,7 @@ app:
   ai:
     cache:
       enabled: false
+  clamav:
+    enabled: false
+    fail-open: true
 

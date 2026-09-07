@@ -24,6 +24,7 @@ Entrée unique optionnelle : profile Compose `proxy` (Caddy) — [proxy.md](prox
 | `ollama` / `ollama-init` | Inférence locale + pull modèle |
 | `minio` / `minio-init` | Stockage objet documents + pièces jointes email |
 | `backend` | API Spring Boot ; OCR Tesseract (fra+eng) pour scans PDF/PNG/JPEG |
+| `clamav` | Antivirus clamd (profile `clamav`, off par défaut) |
 | `mailpit` | SMTP de test |
 | `redis` | Cache AI (fail-open) |
 | `reverse-proxy` | Caddy (profile `proxy`, off par défaut) |

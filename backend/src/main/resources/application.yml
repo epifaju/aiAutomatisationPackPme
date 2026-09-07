@@ -34,6 +34,12 @@ app:
     ocr-enabled: ${DOCUMENT_OCR_ENABLED:true}
     ocr-languages: ${DOCUMENT_OCR_LANGUAGES:fra+eng}
     ocr-min-chars: ${DOCUMENT_OCR_MIN_CHARS:40}
+  clamav:
+    enabled: ${CLAMAV_ENABLED:false}
+    host: ${CLAMAV_HOST:localhost}
+    port: ${CLAMAV_PORT:3310}
+    timeout: ${CLAMAV_TIMEOUT:10s}
+    fail-open: ${CLAMAV_FAIL_OPEN:true}
   invoices:
     auto-send: ${INVOICE_REMINDER_AUTO_SEND:false}
     scheduler-enabled: ${INVOICE_REMINDER_SCHEDULER_ENABLED:true}

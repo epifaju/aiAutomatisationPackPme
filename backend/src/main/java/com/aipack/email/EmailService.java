@@ -22,6 +22,7 @@ import com.aipack.identity.CompanySettings;
 import com.aipack.identity.CompanySettingsRepository;
 import com.aipack.storage.ObjectStorage;
 import com.aipack.storage.StorageException;
+import com.aipack.virus.VirusScanner;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
@@ -69,6 +70,7 @@ public class EmailService {
     private final DocumentProperties documentProperties;
     private final DocumentMimeDetector mimeDetector;
     private final ObjectStorage objectStorage;
+    private final VirusScanner virusScanner;
 
     public EmailService(
             EmailRepository emailRepository,
@@ -86,7 +88,8 @@ public class EmailService {
             EmailProperties emailProperties,
             DocumentProperties documentProperties,
             DocumentMimeDetector mimeDetector,
-            ObjectStorage objectStorage) {
+            ObjectStorage objectStorage,
+            VirusScanner virusScanner) {
         this.emailRepository = emailRepository;
         this.emailAnalysisRepository = emailAnalysisRepository;
         this.emailAttachmentRepository = emailAttachmentRepository;
@@ -103,6 +106,7 @@ public class EmailService {
         this.documentProperties = documentProperties;
         this.mimeDetector = mimeDetector;
         this.objectStorage = objectStorage;
+        this.virusScanner = virusScanner;
     }
 
     @Transactional(readOnly = true)
@@ -486,6 +490,7 @@ public class EmailService {
             if (content.length > documentProperties.maxSizeOrDefault()) {
                 throw EmailException.attachmentTooLarge();
             }
+            virusScanner.assertClean(content, item.filename());
             DocumentMimeDetector.DetectedFile detected;
             try {
                 detected = mimeDetector.detect(content, item.filename());
