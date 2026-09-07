@@ -24,6 +24,7 @@ Le PRD `PRD___AI_Automation_Pack_for_TPE-PME_v1.1.md` est la source de vérité 
 | Automatisation | n8n (PostgreSQL) | `n8nio/n8n:1.107.4` |
 | Base de données | PostgreSQL 16 + pgvector | `pgvector/pgvector:0.8.6-pg16` |
 | IA locale | Ollama | `ollama/ollama:0.11.10` |
+| IA externe (opt.) | OpenAI-compatible (`AI_PROVIDER=openai`) | — |
 | Backend | Spring Boot 3.5.5 / Java 21 / Maven | build local `backend/Dockerfile` |
 | Frontend | React / TypeScript / Vite / Tailwind | build local `frontend/Dockerfile` |
 | Emails de test | Mailpit | `axllent/mailpit:v1.27.4` |
@@ -133,6 +134,8 @@ Détails : `tests/e2e/README.md`.
 OpenAPI : `GET /v3/api-docs` · Swagger UI : `/swagger-ui.html`.
 
 `ollama-init` tire le modèle `${OLLAMA_MODEL}` (défaut `llama3.2`, ~2 Go) puis fait un warm-up. `OLLAMA_KEEP_ALIVE=-1` garde le modèle en mémoire. Premier inferencing CPU : souvent 30–120 s (`AI_TIMEOUT=120s` par appel).
+
+Pour une API cloud (OpenAI, Mistral compatible, etc.) : `AI_PROVIDER=openai`, `AI_OPENAI_API_KEY`, optionnellement `AI_OPENAI_BASE_URL` / `AI_OPENAI_MODEL` — voir [docs/troubleshooting.md](docs/troubleshooting.md#ia-externe-openai-compatible).
 
 Smoke n8n + Ollama :
 
@@ -291,7 +294,7 @@ curl -s -X POST http://localhost:8080/webhook/audit/n8n-error \
 
 ## Leads (Phase 6)
 
-CRUD scoped à l’entreprise du jeton. Le webhook public est authentifié par `X-Webhook-Secret` (`WEBHOOK_SECRET`). La qualification IA passe par `AIProvider` (Ollama), avec retry, circuit breaker, cache Redis optionnel (fail-open) et prompt `ollama/prompts/lead-qualification.txt`.
+CRUD scoped à l’entreprise du jeton. Le webhook public est authentifié par `X-Webhook-Secret` (`WEBHOOK_SECRET`). La qualification IA passe par `AIProvider` (Ollama par défaut, ou OpenAI-compatible si `AI_PROVIDER=openai`), avec retry, circuit breaker, cache Redis optionnel (fail-open) et prompt `ollama/prompts/lead-qualification.txt`.
 
 | Méthode | Chemin | Auth |
 | --- | --- | --- |

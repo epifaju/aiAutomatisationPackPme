@@ -20,10 +20,22 @@ Action : modifier le port hôte dans `.env` (`POSTGRES_PORT`, `BACKEND_PORT`, `N
 - Ne pas laisser deux modèles chargés en parallèle (bloquent le CPU).
 - Relancer : `docker compose up ollama-init` puis `docker compose up -d --force-recreate backend`.
 - Smoke : `.\scripts\smoke-n8n-ollama.ps1`.
+- Alternative cloud : `AI_PROVIDER=openai` + `AI_OPENAI_API_KEY` (voir ci-dessous).
+
+## IA externe (OpenAI-compatible)
+
+```env
+AI_PROVIDER=openai
+AI_OPENAI_API_KEY=sk-...
+AI_OPENAI_MODEL=gpt-4o-mini
+# AI_OPENAI_BASE_URL=https://api.mistral.ai/v1
+```
+
+Sans clé API, le backend refuse de démarrer. Anthropic natif non branché ; un proxy compatible OpenAI peut servir via `AI_OPENAI_BASE_URL`.
 
 ## Document en statut `AI_UNAVAILABLE` / `ERROR`
 
-Ollama indisponible ou timeout. Vérifier `GET /api/tags` sur le port Ollama, logs `backend` / `ollama`.
+Ollama / OpenAI indisponible ou timeout. Vérifier le provider (`AI_PROVIDER`), les logs `backend`, et pour Ollama `GET /api/tags`.
 
 ## Triangle rouge sur workflow Error Handler (WF091)
 

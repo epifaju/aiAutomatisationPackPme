@@ -28,11 +28,13 @@ public class AiGateway {
     private final AiResponseCache cache;
     private final AiRequestLogRepository aiRequestLogRepository;
     private final EntityManager entityManager;
+    private final String providerLabel;
     private final Retry retry;
     private final CircuitBreaker circuitBreaker;
 
     public AiGateway(
             AIProvider aiProvider,
+            AiProperties aiProperties,
             AiResponseCache cache,
             AiRequestLogRepository aiRequestLogRepository,
             EntityManager entityManager) {
@@ -40,6 +42,7 @@ public class AiGateway {
         this.cache = cache;
         this.aiRequestLogRepository = aiRequestLogRepository;
         this.entityManager = entityManager;
+        this.providerLabel = aiProperties.normalizedProvider().toUpperCase(java.util.Locale.ROOT);
         this.retry = Retry.of(
                 "ai",
                 RetryConfig.custom()
@@ -83,13 +86,13 @@ public class AiGateway {
             return response;
         } catch (CallNotPermittedException | AiUnavailableException ex) {
             int latency = (int) Duration.ofNanos(System.nanoTime() - start).toMillis();
-            AIResponse unavailable = AIResponse.unavailable("OLLAMA", null, latency);
+            AIResponse unavailable = AIResponse.unavailable(providerLabel, null, latency);
             logRequest(request, promptHash, unavailable, ex.getMessage());
             log.warn("IA indisponible (purpose={}): {}", request.purpose(), ex.getMessage());
             return unavailable;
         } catch (RuntimeException ex) {
             int latency = (int) Duration.ofNanos(System.nanoTime() - start).toMillis();
-            AIResponse unavailable = AIResponse.unavailable("OLLAMA", null, latency);
+            AIResponse unavailable = AIResponse.unavailable(providerLabel, null, latency);
             logRequest(request, promptHash, unavailable, ex.getMessage());
             log.warn("Échec inattendu IA (purpose={}): {}", request.purpose(), ex.getMessage());
             return unavailable;

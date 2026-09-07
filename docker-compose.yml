@@ -206,7 +206,12 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-aipack-dev-change-me}
       OLLAMA_BASE_URL: http://ollama:11434
       OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.2:1b}
+      AI_PROVIDER: ${AI_PROVIDER:-ollama}
       AI_TIMEOUT: ${AI_TIMEOUT:-900s}
+      AI_OPENAI_BASE_URL: ${AI_OPENAI_BASE_URL:-https://api.openai.com/v1}
+      AI_OPENAI_API_KEY: ${AI_OPENAI_API_KEY:-}
+      AI_OPENAI_MODEL: ${AI_OPENAI_MODEL:-gpt-4o-mini}
+      AI_OPENAI_JSON_MODE: ${AI_OPENAI_JSON_MODE:-true}
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"
       SMTP_USER: ${SMTP_USER:-}
