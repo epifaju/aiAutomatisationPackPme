@@ -74,7 +74,7 @@ public class ProductionSecretsValidator {
         log.info("Contrôle secrets production OK (APP_ENV={})", appEnv);
     }
 
-    static boolean isProduction(String appEnv) {
+    public static boolean isProduction(String appEnv) {
         if (appEnv == null || appEnv.isBlank()) {
             return false;
         }

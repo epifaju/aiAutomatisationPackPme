@@ -193,6 +193,7 @@ services:
     restart: unless-stopped
     environment:
       APP_ENV: ${APP_ENV:-development}
+      DEMO_SEED_ENABLED: ${DEMO_SEED_ENABLED:-}
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:5173}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
       JWT_SECRET: ${JWT_SECRET:-change-me-jwt-secret-min-32-characters-long}

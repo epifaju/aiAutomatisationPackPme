@@ -220,14 +220,14 @@ Seed Flyway repeatable `database/seed/R__demo_data.sql` (inserts idempotents, do
 | Documents | 5 |
 | Audit logs | 20 |
 
-Compte de démo (profils `dev` / `test` uniquement — le hash seed `pgcrypto` est réécrit en BCrypt Spring au démarrage) :
+Compte de démo (seed actif hors production — `DEMO_SEED_ENABLED` auto ; le hash seed `pgcrypto` est réécrit en BCrypt Spring au démarrage) :
 
 ```text
 email    : demo.admin@aipack.example
 password : DemoAdmin!2026
 ```
 
-Ce compte ne doit pas servir en production. `JWT_SECRET` doit faire au moins 32 caractères (voir `.env.example`).
+Ce compte ne doit pas servir en production (`APP_ENV=production` coupe le seed et désactive `demo.admin` s’il reste en base). `JWT_SECRET` doit faire au moins 32 caractères (voir `.env.example`).
 
 ## Authentification (Phase 4)
 
