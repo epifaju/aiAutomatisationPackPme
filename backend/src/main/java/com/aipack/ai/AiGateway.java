@@ -76,7 +76,7 @@ public class AiGateway {
             if (response.isSuccess()
                     && response.text() != null
                     && !response.text().isBlank()
-                    && !"document-extraction".equals(request.purpose())) {
+                    && !uncacheablePurpose(request.purpose())) {
                 cache.put(cacheKey, response.text());
             }
             logRequest(request, promptHash, response, null);
@@ -94,6 +94,13 @@ public class AiGateway {
             log.warn("Échec inattendu IA (purpose={}): {}", request.purpose(), ex.getMessage());
             return unavailable;
         }
+    }
+
+    private static boolean uncacheablePurpose(String purpose) {
+        // Petits modèles : réponses souvent partiellement incorrectes ; ne pas empoisonner Redis.
+        return "document-extraction".equals(purpose)
+                || "email-classification".equals(purpose)
+                || "email-response".equals(purpose);
     }
 
     private void logRequest(AIRequest request, String promptHash, AIResponse response, String errorMessage) {

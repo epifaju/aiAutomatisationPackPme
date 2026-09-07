@@ -1,6 +1,7 @@
+import { ensureOllamaModelPresent, ollamaModel, warmOllama } from "./helpers/ai";
 import { loadE2eEnv } from "./helpers/env";
 
-async function fetchOk(url: string, attempts = 8): Promise<Response> {
+async function fetchOk(url: string, attempts = 12): Promise<Response> {
   let lastError: unknown;
   for (let i = 1; i <= attempts; i++) {
     try {
@@ -10,26 +11,24 @@ async function fetchOk(url: string, attempts = 8): Promise<Response> {
     } catch (err) {
       lastError = err;
     }
-    await new Promise((r) => setTimeout(r, 2000));
+    await new Promise((r) => setTimeout(r, 2500));
   }
   throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
 /**
- * Verify backend + Ollama model before E2E AI scenarios.
+ * Verify backend + Ollama model, then warm the model before AI scenarios.
  */
 async function globalSetup() {
   const env = loadE2eEnv();
-  const ollamaPort = process.env.OLLAMA_PORT || "11434";
 
   await fetchOk(`${env.backendBaseUrl}/actuator/health`);
+  await ensureOllamaModelPresent();
 
-  const tags = await fetchOk(`http://localhost:${ollamaPort}/api/tags`);
-  const tagBody = (await tags.json()) as { models?: Array<{ name?: string }> };
-  const hasModel = (tagBody.models ?? []).some((m) => (m.name ?? "").includes("llama3.2"));
-  if (!hasModel) {
-    throw new Error("Ollama model llama3.2 missing. Run: docker compose up ollama-init");
-  }
+  console.info(`[e2e] warming Ollama model ${ollamaModel()}…`);
+  const started = Date.now();
+  await warmOllama(Math.min(env.aiTimeoutMs, 300_000));
+  console.info(`[e2e] Ollama warm done in ${Date.now() - started}ms`);
 }
 
 export default globalSetup;

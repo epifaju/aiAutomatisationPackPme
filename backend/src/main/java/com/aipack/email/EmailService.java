@@ -207,6 +207,19 @@ public class EmailService {
                     replyFailed = true;
                 }
             }
+            if (reply == null) {
+                // Garde une proposition utilisable pour la validation humaine (petits modèles).
+                reply = new EmailAnalysisParser.Reply(
+                        """
+                        Bonjour,
+
+                        Merci pour votre message. Nous avons bien reçu votre demande et revenons vers vous rapidement avec les éléments demandés.
+
+                        Cordialement
+                        """.stripIndent().trim(),
+                        new BigDecimal("0.40"));
+                replyFailed = true;
+            }
         }
 
         EmailAnalysis analysis = existing == null ? new EmailAnalysis() : existing;

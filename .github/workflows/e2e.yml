@@ -1,5 +1,5 @@
 # E2E CI — Docker Compose + Playwright (PRD §40 / §40bis)
-# Pulls llama3.2 (~2 Go) via ollama-init — long job; email scenario may skip if AI is slow.
+# Uses llama3.2:1b (CPU-friendly). Scenario B is strict in CI (no AI skip).
 name: e2e
 
 on:
@@ -30,8 +30,11 @@ jobs:
           sed -i 's/^FRONTEND_PORT=.*/FRONTEND_PORT=5173/' .env
           sed -i 's/^MAILPIT_SMTP_HOST_PORT=.*/MAILPIT_SMTP_HOST_PORT=1025/' .env
           sed -i 's/^MAILPIT_UI_PORT=.*/MAILPIT_UI_PORT=8025/' .env
-          sed -i 's/^AI_TIMEOUT=.*/AI_TIMEOUT=300s/' .env
-          echo "E2E_AI_TIMEOUT_MS=420000" >> .env
+          sed -i 's/^OLLAMA_MODEL=.*/OLLAMA_MODEL=llama3.2:1b/' .env
+          sed -i 's/^AI_TIMEOUT=.*/AI_TIMEOUT=600s/' .env
+          sed -i 's/^E2E_AI_TIMEOUT_MS=.*/E2E_AI_TIMEOUT_MS=420000/' .env
+          grep -q '^E2E_AI_TIMEOUT_MS=' .env || echo 'E2E_AI_TIMEOUT_MS=420000' >> .env
+          echo 'E2E_STRICT_AI=1' >> .env
 
       - name: Start stack
         run: |
@@ -39,6 +42,24 @@ jobs:
           docker compose up minio-init ollama-init n8n-init
           docker compose restart n8n
           docker compose up -d n8n --wait
+
+      - name: Warm Ollama model
+        run: |
+          MODEL=$(grep -E '^OLLAMA_MODEL=' .env | cut -d= -f2-)
+          echo "Warming $MODEL"
+          for i in $(seq 1 5); do
+            if curl -fsS http://localhost:11434/api/tags | grep -q "$MODEL\|llama3.2"; then
+              break
+            fi
+            echo "waiting for model tags… ($i)"
+            sleep 10
+          done
+          curl -fsS http://localhost:11434/api/generate \
+            -H 'Content-Type: application/json' \
+            -d "{\"model\":\"${MODEL}\",\"prompt\":\"OK\",\"stream\":false,\"keep_alive\":-1,\"options\":{\"num_predict\":8}}" \
+            --max-time 300 \
+            | head -c 200
+          echo
 
       - name: Wait for frontend
         run: |
@@ -71,6 +92,9 @@ jobs:
         working-directory: tests/e2e
         env:
           E2E_AI_TIMEOUT_MS: "420000"
+          E2E_STRICT_AI: "1"
+          OLLAMA_MODEL: "llama3.2:1b"
+          CI: "true"
         run: npm test
 
       - name: Upload Playwright report

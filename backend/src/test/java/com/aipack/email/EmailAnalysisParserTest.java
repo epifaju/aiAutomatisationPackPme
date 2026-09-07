@@ -35,11 +35,38 @@ class EmailAnalysisParserTest {
         EmailAnalysisParser.Classification result = parser.parseClassification(
                 """
                 ```json
-                {"category":"SPAM","priority":"LOW","summary":"Pub","confidenceScore":0.8}
+                {"category":"SPAM","priority":"LOW","summary":"Pub","confidenceScore":0.85}
                 ```
                 """);
         assertThat(result.category()).isEqualTo("SPAM");
         assertThat(result.summary()).isEqualTo("Pub");
+    }
+
+    @Test
+    void lowConfidenceSpamBecomesAutre() {
+        EmailAnalysisParser.Classification result = parser.parseClassification(
+                """
+                {"category":"SPAM","priority":"LOW","summary":"Ambigu","confidenceScore":0.4}
+                """);
+        assertThat(result.category()).isEqualTo("AUTRE");
+    }
+
+    @Test
+    void unknownCategoryFallsBackToAutre() {
+        EmailAnalysisParser.Classification result = parser.parseClassification(
+                """
+                {"category":"NEWSLETTER","priority":"LOW","summary":"x","confidenceScore":0.5}
+                """);
+        assertThat(result.category()).isEqualTo("AUTRE");
+    }
+
+    @Test
+    void missingSummaryGetsDefault() {
+        EmailAnalysisParser.Classification result = parser.parseClassification(
+                """
+                {"category":"CLIENT","priority":"LOW","confidenceScore":0.5}
+                """);
+        assertThat(result.summary()).isNotBlank();
     }
 
     @Test
@@ -53,21 +80,13 @@ class EmailAnalysisParserTest {
     }
 
     @Test
-    void rejectsUnknownCategory() {
-        assertThatThrownBy(() -> parser.parseClassification(
-                        """
-                        {"category":"NEWSLETTER","priority":"LOW","summary":"x","confidenceScore":0.5}
-                        """))
-                .isInstanceOf(AiParsingException.class);
-    }
-
-    @Test
-    void rejectsMissingSummary() {
-        assertThatThrownBy(() -> parser.parseClassification(
-                        """
-                        {"category":"CLIENT","priority":"LOW","confidenceScore":0.5}
-                        """))
-                .isInstanceOf(AiParsingException.class);
+    void acceptsReplyAliasAndPercentConfidence() {
+        EmailAnalysisParser.Reply result = parser.parseReply(
+                """
+                {"reply":"OK","confidenceScore":70}
+                """);
+        assertThat(result.suggestedReply()).isEqualTo("OK");
+        assertThat(result.confidenceScore()).isEqualByComparingTo(new BigDecimal("0.7000"));
     }
 
     @Test
@@ -76,5 +95,15 @@ class EmailAnalysisParserTest {
                 {"suggestedReply":"  "}
                 """))
                 .isInstanceOf(AiParsingException.class);
+    }
+
+    @Test
+    void mapsDevisHintToProspect() {
+        EmailAnalysisParser.Classification result = parser.parseClassification(
+                """
+                {"category":"demande_devis","priority":"normale","summary":"Demande de devis","confidenceScore":0.6}
+                """);
+        assertThat(result.category()).isEqualTo("PROSPECT");
+        assertThat(result.priority()).isEqualTo("NORMAL");
     }
 }

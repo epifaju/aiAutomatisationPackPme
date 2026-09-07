@@ -1,19 +1,30 @@
 import { expect, test } from "@playwright/test";
-import { apiGet, apiPost, loginApi, waitForAudit, webhookPost } from "../helpers/api";
+import { analyzeReady, strictAi, warmOllama } from "../helpers/ai";
+import { apiGet, apiPost, loginApi, mailpitMessages, waitForAudit, webhookPost } from "../helpers/api";
 import { loadE2eEnv } from "../helpers/env";
 
 /**
- * Scenario B — Email → analyse → classification → proposition → validation humaine
- * Analyse via API (Ollama réel) ; Approuver dans l'UI.
- * Si Ollama est trop lent/indisponible sur l'hôte, le test est skippé (pas un faux rouge).
+ * Scenario B — Email → analyse → classification → proposition → Approuver → Envoyer → Mailpit
+ *
+ * Localement : skip si Ollama KO (machine CPU variable).
+ * En CI (ou E2E_STRICT_AI=1) : échec dur — le warm global + llama3.2:1b doivent suffire.
  */
 test.describe("Scenario B — Email", () => {
-  test("ingest+analyze then UI approve", async ({ page, request }) => {
+  test("ingest+analyze then UI approve+send to Mailpit", async ({ page, request }) => {
     test.setTimeout(20 * 60 * 1000);
     const env = loadE2eEnv();
     const stamp = Date.now();
     const messageId = `e2e-email-${stamp}@aipack.example`;
     const subject = `E2E devis ${stamp}`;
+
+    // Warm again right before the dual LLM call (classification + reply).
+    try {
+      await warmOllama(180_000);
+    } catch (err) {
+      if (strictAi()) throw err;
+      test.skip(true, `Ollama warm failed: ${String(err)}`);
+      return;
+    }
 
     const ingested = await webhookPost(
       request,
@@ -24,7 +35,8 @@ test.describe("Scenario B — Email", () => {
         fromAddress: `client.e2e.${stamp}@demo.aipack.example`,
         toAddress: "inbox@demo.aipack.example",
         subject,
-        bodyText: "Bonjour, merci de nous envoyer un devis pour automatiser nos relances clients.",
+        bodyText:
+          "Bonjour, merci de nous envoyer un devis pour automatiser nos relances clients. Nous sommes une TPE de 12 personnes.",
         analyze: false,
       },
       30_000,
@@ -35,19 +47,29 @@ test.describe("Scenario B — Email", () => {
     const token = await loginApi(request);
     await waitForAudit(request, token, { entityType: "EMAIL", entityId: emailId, action: "INGESTED" }, 60_000);
 
-    let result: { data: { status: string; analysis?: { approvalStatus?: string } } };
+    let result: {
+      data: {
+        status: string;
+        analysis?: { approvalStatus?: string | null; category?: string | null; suggestedReply?: string | null };
+      };
+    };
     try {
       result = await apiPost(request, `/api/v1/emails/${emailId}/analyze`, token, undefined, env.aiTimeoutMs);
+      // One retry if first response is soft-failure (circuit / cold start).
+      if (!analyzeReady(result.data)) {
+        await warmOllama(120_000);
+        result = await apiPost(request, `/api/v1/emails/${emailId}/analyze`, token, undefined, env.aiTimeoutMs);
+      }
     } catch (err) {
+      if (strictAi()) throw err;
       test.skip(true, `Ollama timeout/unreachable during email analysis: ${String(err)}`);
       return;
     }
 
-    if (result.data.status !== "ANALYZED" || result.data.analysis?.approvalStatus !== "PENDING_APPROVAL") {
-      test.skip(
-        true,
-        `Ollama did not return a pending reply (status=${result.data.status}). Warm the model and set AI_TIMEOUT=300s.`,
-      );
+    if (!analyzeReady(result.data)) {
+      const msg = `Ollama did not return a pending reply (status=${result.data.status}, approval=${result.data.analysis?.approvalStatus}).`;
+      if (strictAi()) throw new Error(msg);
+      test.skip(true, `${msg} Warm the model and check AI_TIMEOUT / OLLAMA_MODEL=llama3.2:1b.`);
       return;
     }
 
@@ -81,8 +103,8 @@ test.describe("Scenario B — Email", () => {
       timeout: 30_000,
     });
 
-    const detail = await apiGet(request, `/api/v1/emails/${emailId}`, token);
-    expect(detail.data.analysis.approvalStatus).toBe("APPROVED");
+    const afterApprove = await apiGet(request, `/api/v1/emails/${emailId}`, token);
+    expect(afterApprove.data.analysis.approvalStatus).toBe("APPROVED");
 
     await waitForAudit(
       request,
@@ -90,5 +112,28 @@ test.describe("Scenario B — Email", () => {
       { entityType: "EMAIL", entityId: emailId, action: "APPROVED" },
       60_000,
     );
+
+    const mailBefore = await mailpitMessages(request);
+    const totalBefore = Number(mailBefore.total ?? 0);
+
+    await panel.getByRole("button", { name: "Envoyer" }).click();
+    await expect(panel.getByText("Envoyé").or(panel.getByText("EXECUTED")).first()).toBeVisible({
+      timeout: 30_000,
+    });
+
+    const afterSend = await apiGet(request, `/api/v1/emails/${emailId}`, token);
+    expect(afterSend.data.analysis.approvalStatus).toBe("EXECUTED");
+
+    await expect
+      .poll(
+        async () => {
+          const mail = await mailpitMessages(request);
+          return Number(mail.total ?? 0);
+        },
+        { timeout: 30_000 },
+      )
+      .toBeGreaterThan(totalBefore);
+
+    await waitForAudit(request, token, { entityType: "EMAIL", entityId: emailId, action: "SENT" }, 60_000);
   });
 });
