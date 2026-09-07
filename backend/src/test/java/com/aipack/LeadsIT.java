@@ -198,6 +198,42 @@ class LeadsIT {
     }
 
     @Test
+    void importCsvCreatesLeadsWithSourceCsv() throws Exception {
+        String access = login();
+        String csv =
+                """
+                fullName,email,companyName
+                Ada Lovelace,ada.csv@demo.aipack.example,Analytical Engines
+                Bad Row,not-an-email,Skip Co
+                Charles Babbage,charles.csv@demo.aipack.example,Difference Co
+                """;
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/api/v1/leads/import", HttpMethod.POST, multipart(access, csv.getBytes(java.nio.charset.StandardCharsets.UTF_8)), String.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        JsonNode body = objectMapper.readTree(response.getBody()).path("data");
+        assertThat(body.path("imported").asInt()).isEqualTo(2);
+        assertThat(body.path("failed").asInt()).isEqualTo(1);
+        assertThat(body.path("totalRows").asInt()).isEqualTo(3);
+        assertThat(body.path("leadIds")).hasSize(2);
+        assertThat(body.path("errors")).hasSize(1);
+
+        JsonNode list = getJson(access, "/api/v1/leads?q=ada.csv&size=10").path("data");
+        assertThat(list.path("totalElements").asInt()).isGreaterThanOrEqualTo(1);
+        assertThat(list.path("content").get(0).path("source").asText()).isEqualTo("CSV");
+    }
+
+    @Test
+    void importCsvRequiresAccessToken() {
+        String csv = "fullName,email\nTest User,test@demo.aipack.example\n";
+        ResponseEntity<String> response = restTemplate.exchange(
+                "/api/v1/leads/import",
+                HttpMethod.POST,
+                multipart(null, csv.getBytes(java.nio.charset.StandardCharsets.UTF_8)),
+                String.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
     void invalidListStatusIsRejected() throws Exception {
         String access = login();
         ResponseEntity<String> response = restTemplate.exchange(
@@ -244,5 +280,23 @@ class LeadsIT {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(accessToken);
         return new HttpEntity<>(headers);
+    }
+
+    private HttpEntity<org.springframework.util.MultiValueMap<String, Object>> multipart(
+            String accessToken, byte[] content) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        if (accessToken != null) {
+            headers.setBearerAuth(accessToken);
+        }
+        org.springframework.util.LinkedMultiValueMap<String, Object> body =
+                new org.springframework.util.LinkedMultiValueMap<>();
+        body.add("file", new org.springframework.core.io.ByteArrayResource(content) {
+            @Override
+            public String getFilename() {
+                return "leads.csv";
+            }
+        });
+        return new HttpEntity<>(body, headers);
     }
 }

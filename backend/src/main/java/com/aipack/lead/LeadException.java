@@ -33,6 +33,25 @@ public class LeadException extends RuntimeException {
         return new LeadException("VALIDATION_ERROR", "Le nom du lead est obligatoire", HttpStatus.BAD_REQUEST);
     }
 
+    public static LeadException emptyCsv() {
+        return new LeadException("EMPTY_CSV", "Fichier CSV vide", HttpStatus.BAD_REQUEST);
+    }
+
+    public static LeadException missingCsvFile() {
+        return new LeadException("MISSING_FILE", "Fichier CSV obligatoire", HttpStatus.BAD_REQUEST);
+    }
+
+    public static LeadException invalidCsv(String message) {
+        return new LeadException("INVALID_CSV", message, HttpStatus.BAD_REQUEST);
+    }
+
+    public static LeadException importTooLarge() {
+        return new LeadException(
+                "IMPORT_TOO_LARGE",
+                "Trop de lignes (maximum " + LeadCsvParser.MAX_ROWS + ")",
+                HttpStatus.BAD_REQUEST);
+    }
+
     public String getCode() {
         return code;
     }

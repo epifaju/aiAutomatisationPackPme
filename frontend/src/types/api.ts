@@ -120,6 +120,19 @@ export type Lead = {
   createdAt: string;
 };
 
+export type LeadImportError = {
+  row: number;
+  message: string;
+};
+
+export type LeadImportResponse = {
+  imported: number;
+  failed: number;
+  totalRows: number;
+  leadIds: string[];
+  errors: LeadImportError[];
+};
+
 export type DocumentExtraction = {
   id: string;
   extractedJson: Record<string, unknown> | null;

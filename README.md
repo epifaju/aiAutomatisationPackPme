@@ -292,6 +292,7 @@ CRUD scoped à l’entreprise du jeton. Le webhook public est authentifié par `
 | `GET` | `/api/v1/leads` | JWT |
 | `GET` | `/api/v1/leads/{id}` | JWT |
 | `POST` | `/api/v1/leads` | JWT |
+| `POST` | `/api/v1/leads/import` | JWT (multipart `file` CSV) |
 | `PUT` | `/api/v1/leads/{id}` | JWT |
 | `DELETE` | `/api/v1/leads/{id}` | JWT |
 | `POST` | `/api/v1/leads/{id}/qualify` | JWT |
@@ -300,6 +301,8 @@ CRUD scoped à l’entreprise du jeton. Le webhook public est authentifié par `
 Filtres liste : `status`, `source`, `q` (nom / email / société). Pagination Spring (`page`, `size`, tri `createdAt` desc).
 
 Pipeline : `NEW` → `QUALIFIED` → `CONTACTED` → `PROPOSAL` → `WON` / `LOST`. Sources : `WEB_FORM`, `WEBHOOK`, `EMAIL`, `CSV`, `API`.
+
+Import CSV (`POST /api/v1/leads/import`) : UTF-8, séparateur `,` ou `;`, max 500 lignes. Colonnes : `fullName` (obligatoire ; aliases `nom`, `name`) ; optionnel `email`, `companyName`/`societe`, `phone`/`telephone`, `summary`/`notes`. Source forcée `CSV`, statut `NEW`. Succès partiel possible (lignes invalides listées dans `errors`).
 
 Score 0–100 (bandes configurables : 0–30 faible, 31–60 moyen, 61–80 intéressant, 81–100 prioritaire). Si `confidenceScore` < seuil entreprise (0,700 par défaut) → `aiStatus=REVIEW_REQUIRED` (le statut pipeline n’est pas avancé). Parsing JSON impossible → `AI_PARSING_ERROR`. Ollama indisponible → `AI_UNAVAILABLE` (le lead est tout de même créé).
 

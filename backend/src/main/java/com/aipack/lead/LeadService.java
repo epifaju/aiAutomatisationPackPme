@@ -14,11 +14,14 @@ import com.aipack.identity.CompanySettings;
 import com.aipack.identity.CompanySettingsRepository;
 import com.aipack.lead.dto.CreateLeadRequest;
 import com.aipack.lead.dto.LeadEventResponse;
+import com.aipack.lead.dto.LeadImportError;
+import com.aipack.lead.dto.LeadImportResponse;
 import com.aipack.lead.dto.LeadResponse;
 import com.aipack.lead.dto.UpdateLeadRequest;
 import com.aipack.lead.dto.WebhookLeadRequest;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.Predicate;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -32,6 +35,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class LeadService {
@@ -50,6 +54,7 @@ public class LeadService {
     private final AiGateway aiGateway;
     private final PromptCatalog promptCatalog;
     private final LeadQualificationParser qualificationParser;
+    private final LeadCsvParser leadCsvParser;
 
     public LeadService(
             LeadRepository leadRepository,
@@ -61,7 +66,8 @@ public class LeadService {
             EntityManager entityManager,
             AiGateway aiGateway,
             PromptCatalog promptCatalog,
-            LeadQualificationParser qualificationParser) {
+            LeadQualificationParser qualificationParser,
+            LeadCsvParser leadCsvParser) {
         this.leadRepository = leadRepository;
         this.leadEventRepository = leadEventRepository;
         this.companyRepository = companyRepository;
@@ -72,6 +78,7 @@ public class LeadService {
         this.aiGateway = aiGateway;
         this.promptCatalog = promptCatalog;
         this.qualificationParser = qualificationParser;
+        this.leadCsvParser = leadCsvParser;
     }
 
     @Transactional(readOnly = true)
@@ -127,6 +134,51 @@ public class LeadService {
         addEvent(saved, "CREATED", Map.of("source", saved.getSource()));
         audit(companyId, WORKFLOW_CAPTURE, "CREATED", saved.getId(), AuditStatus.SUCCESS, Map.of("source", saved.getSource()));
         return toResponse(saved, settingsOf(companyId), true);
+    }
+
+    public LeadImportResponse importCsv(UUID companyId, MultipartFile file) {
+        if (!companyRepository.existsById(companyId)) {
+            throw LeadException.companyNotFound();
+        }
+        if (file == null || file.isEmpty()) {
+            throw LeadException.missingCsvFile();
+        }
+        List<LeadCsvParser.ParsedRow> rows;
+        try {
+            rows = leadCsvParser.parse(file.getInputStream());
+        } catch (IOException ex) {
+            throw LeadException.invalidCsv("Impossible de lire le fichier CSV");
+        }
+
+        List<UUID> leadIds = new ArrayList<>();
+        List<LeadImportError> errors = new ArrayList<>();
+        for (LeadCsvParser.ParsedRow row : rows) {
+            if (!row.ok()) {
+                errors.add(new LeadImportError(row.rowNumber(), row.error()));
+                continue;
+            }
+            try {
+                LeadResponse created = create(companyId, row.request());
+                leadIds.add(created.id());
+            } catch (RuntimeException ex) {
+                errors.add(new LeadImportError(
+                        row.rowNumber(), ex.getMessage() == null ? "Échec d'import" : ex.getMessage()));
+            }
+        }
+
+        audit(
+                companyId,
+                WORKFLOW_CAPTURE,
+                "CSV_IMPORTED",
+                companyId,
+                AuditStatus.SUCCESS,
+                Map.of(
+                        "imported", leadIds.size(),
+                        "failed", errors.size(),
+                        "totalRows", rows.size(),
+                        "scope", "csv-import"));
+
+        return new LeadImportResponse(leadIds.size(), errors.size(), rows.size(), leadIds, errors);
     }
 
     @Transactional

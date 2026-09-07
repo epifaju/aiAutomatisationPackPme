@@ -27,6 +27,7 @@
         <bucket4j.version>8.19.0</bucket4j.version>
         <tika.version>2.9.4</tika.version>
         <minio.version>8.5.17</minio.version>
+        <commons-csv.version>1.14.0</commons-csv.version>
     </properties>
 
     <dependencies>
@@ -139,6 +140,11 @@
             <groupId>io.minio</groupId>
             <artifactId>minio</artifactId>
             <version>${minio.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>${commons-csv.version}</version>
         </dependency>
 
         <dependency>

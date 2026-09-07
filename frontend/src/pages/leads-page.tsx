@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Badge, Button, Card, Empty, ErrorText, Field, Input, PageHeader } from "@/components/ui";
 import { api } from "@/lib/api";
-import type { Lead, PageResponse } from "@/types/api";
+import type { Lead, LeadImportResponse, PageResponse } from "@/types/api";
 
 const AI_STATUS_LABELS: Record<string, string> = {
   COMPLETED: "Terminé",
@@ -35,6 +35,7 @@ function qualifyResultMessage(lead: Lead) {
 
 export function LeadsPage() {
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [q, setQ] = useState("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -56,6 +57,24 @@ export function LeadsPage() {
       setFullName("");
       setEmail("");
       setSuccessMessage(null);
+      void queryClient.invalidateQueries({ queryKey: ["leads"] });
+    },
+  });
+
+  const importCsv = useMutation({
+    mutationFn: (file: File) => {
+      const body = new FormData();
+      body.append("file", file);
+      return api<LeadImportResponse>("/api/v1/leads/import", { method: "POST", body });
+    },
+    onSuccess: (result) => {
+      const failedHint =
+        result.failed > 0 && result.errors[0]
+          ? ` Ex. ligne ${result.errors[0].row} : ${result.errors[0].message}`
+          : "";
+      setSuccessMessage(
+        `Import CSV : ${result.imported} importé(s), ${result.failed} échec(s) sur ${result.totalRows} ligne(s).${failedHint}`,
+      );
       void queryClient.invalidateQueries({ queryKey: ["leads"] });
     },
   });
@@ -83,9 +102,29 @@ export function LeadsPage() {
         <Field label="Email">
           <Input value={email} onChange={(e) => setEmail(e.target.value)} />
         </Field>
-        <div className="flex items-end">
+        <div className="flex flex-wrap items-end gap-2">
           <Button disabled={!fullName || create.isPending} onClick={() => create.mutate()}>
             Ajouter
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (!file) return;
+              setSuccessMessage(null);
+              importCsv.mutate(file);
+            }}
+          />
+          <Button
+            variant="outline"
+            disabled={importCsv.isPending}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {importCsv.isPending ? "Import…" : "Importer CSV"}
           </Button>
         </div>
         <Field label="Recherche">
@@ -94,6 +133,7 @@ export function LeadsPage() {
       </Card>
 
       {create.error ? <ErrorText error={create.error} /> : null}
+      {importCsv.error ? <ErrorText error={importCsv.error} /> : null}
       {qualify.error ? <ErrorText error={qualify.error} /> : null}
       {qualify.isPending ? (
         <p className="mb-4 rounded-lg border border-line bg-paper px-4 py-3 text-sm text-muted" role="status">
@@ -105,6 +145,10 @@ export function LeadsPage() {
           {successMessage}
         </p>
       ) : null}
+      <p className="mb-4 text-xs text-muted">
+        CSV UTF-8 : colonnes <code>fullName</code> (ou <code>nom</code>), optionnel <code>email</code>,{" "}
+        <code>companyName</code>, <code>phone</code>, <code>summary</code> — max 500 lignes.
+      </p>
 
       <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
         <Card className="overflow-x-auto overflow-y-hidden p-0">
@@ -169,10 +213,7 @@ export function LeadsPage() {
             <div className="grid gap-3 text-sm">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <h2 className="font-display text-2xl">{selected.fullName}</h2>
-                <Button
-                  disabled={qualify.isPending}
-                  onClick={() => qualify.mutate(selected.id)}
-                >
+                <Button disabled={qualify.isPending} onClick={() => qualify.mutate(selected.id)}>
                   {qualifyingId === selected.id ? "Qualification…" : "Qualifier"}
                 </Button>
               </div>
