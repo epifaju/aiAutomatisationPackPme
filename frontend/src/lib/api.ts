@@ -92,6 +92,32 @@ export async function api<T>(path: string, init: RequestInit = {}, retry = true)
   return payload as T;
 }
 
+export async function downloadAuthenticated(path: string, filename: string): Promise<void> {
+  await ensureFreshToken();
+  const headers = new Headers();
+  const token = useAuthStore.getState().accessToken;
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  let response = await fetch(path, { headers });
+  if (response.status === 401) {
+    const refreshed = await refreshTokens();
+    if (!refreshed) throw new ApiClientError(401, "UNAUTHORIZED", "Authentification requise");
+    headers.set("Authorization", `Bearer ${useAuthStore.getState().accessToken}`);
+    response = await fetch(path, { headers });
+  }
+  if (!response.ok) {
+    throw new ApiClientError(response.status, "DOWNLOAD_FAILED", `Téléchargement impossible (${response.status})`);
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
+
 export function apiQuery<T>(path: string) {
   return api<T>(path);
 }

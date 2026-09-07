@@ -247,6 +247,56 @@ class EmailsIT {
     }
 
     @Test
+    void webhookStoresAttachmentAndAllowsDownload() throws Exception {
+        String messageId = "it-attachment-" + UUID.randomUUID() + "@aipack.example";
+        String fileBody = "Piece jointe de test AI Pack";
+        String contentBase64 = java.util.Base64.getEncoder()
+                .encodeToString(fileBody.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+
+        Map<String, Object> attachment = new java.util.LinkedHashMap<>();
+        attachment.put("filename", "note.txt");
+        attachment.put("contentType", "text/plain");
+        attachment.put("contentBase64", contentBase64);
+
+        Map<String, Object> payload = new java.util.LinkedHashMap<>();
+        payload.put("companyId", DEMO_COMPANY.toString());
+        payload.put("messageId", messageId);
+        payload.put("fromAddress", "marie.dupont@demo.aipack.example");
+        payload.put("toAddress", "inbox@demo.aipack.example");
+        payload.put("subject", "Email avec PJ");
+        payload.put("bodyText", "Voir piece jointe");
+        payload.put("analyze", false);
+        payload.put("attachments", java.util.List.of(attachment));
+
+        ResponseEntity<String> created =
+                restTemplate.postForEntity("/webhook/email/incoming", webhook(payload), String.class);
+        assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        JsonNode email = objectMapper.readTree(created.getBody()).path("data");
+        assertThat(email.path("attachments").isArray()).isTrue();
+        assertThat(email.path("attachments")).hasSize(1);
+        assertThat(email.path("attachments").get(0).path("originalFilename").asText()).isEqualTo("note.txt");
+        assertThat(email.path("attachments").get(0).path("contentType").asText()).isEqualTo("text/plain");
+        assertThat(email.path("attachments").get(0).path("sizeBytes").asLong()).isEqualTo(fileBody.length());
+
+        String emailId = email.path("id").asText();
+        String attachmentId = email.path("attachments").get(0).path("id").asText();
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM email_attachments WHERE email_id = ?::uuid", Integer.class, emailId);
+        assertThat(count).isEqualTo(1);
+
+        String access = login();
+        ResponseEntity<byte[]> downloaded = restTemplate.exchange(
+                "/api/v1/emails/" + emailId + "/attachments/" + attachmentId + "/content",
+                HttpMethod.GET,
+                bearer(access),
+                byte[].class);
+        assertThat(downloaded.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(downloaded.getHeaders().getContentType()).isNotNull();
+        assertThat(downloaded.getHeaders().getContentType().isCompatibleWith(MediaType.TEXT_PLAIN)).isTrue();
+        assertThat(new String(downloaded.getBody(), java.nio.charset.StandardCharsets.UTF_8)).isEqualTo(fileBody);
+    }
+
+    @Test
     void invalidListStatusIsRejected() throws Exception {
         String access = login();
         ResponseEntity<String> response = restTemplate.exchange(

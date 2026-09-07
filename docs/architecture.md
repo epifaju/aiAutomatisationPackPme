@@ -8,7 +8,7 @@ Pack self-hosted pour TPE/PME : orchestration Docker Compose, automatisations n8
 Navigateur → [Caddy optionnel] → frontend (Nginx) → /api → backend (Spring Boot)
                                     ↘ PostgreSQL (aipack)
     n8n ←→ PostgreSQL (n8n) + webhooks backend
-backend ←→ Ollama (IA) · MinIO (fichiers) · Redis (cache) · SMTP (Mailpit)
+backend ←→ Ollama (IA) · MinIO (documents + PJ email) · Redis (cache) · SMTP (Mailpit)
 ```
 
 Entrée unique optionnelle : profile Compose `proxy` (Caddy) — [proxy.md](proxy.md).
@@ -22,7 +22,7 @@ Entrée unique optionnelle : profile Compose `proxy` (Caddy) — [proxy.md](prox
 | `n8n` | Workflows (emails, leads, docs, factures, rapports, audit) |
 | `n8n-init` | Import one-shot des JSON `n8n/workflows/` |
 | `ollama` / `ollama-init` | Inférence locale + pull modèle |
-| `minio` / `minio-init` | Stockage objet documents |
+| `minio` / `minio-init` | Stockage objet documents + pièces jointes email |
 | `mailpit` | SMTP de test |
 | `redis` | Cache AI (fail-open) |
 | `reverse-proxy` | Caddy (profile `proxy`, off par défaut) |

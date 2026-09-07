@@ -10,6 +10,7 @@ public interface EmailMapper {
 
     @Mapping(target = "companyId", source = "company.id")
     @Mapping(target = "autoSendEnabled", ignore = true)
+    @Mapping(target = "attachments", ignore = true)
     EmailResponse toResponse(Email email);
 
     EmailAnalysisResponse toAnalysisResponse(EmailAnalysis analysis);

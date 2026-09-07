@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Badge, Button, Card, Empty, ErrorText, PageHeader, Select } from "@/components/ui";
-import { api } from "@/lib/api";
+import { api, downloadAuthenticated } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
 import type { Email, PageResponse } from "@/types/api";
 
@@ -58,10 +58,17 @@ function successHint(action: "analyze" | "approve" | "reject" | "send") {
   return "Analyse relancée.";
 }
 
+function formatBytes(size: number) {
+  if (size < 1024) return `${size} o`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} Ko`;
+  return `${(size / (1024 * 1024)).toFixed(1)} Mo`;
+}
+
 export function InboxPage() {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [approval, setApproval] = useState("");
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const list = useQuery({
     queryKey: ["emails", approval],
     queryFn: () =>
@@ -115,10 +122,16 @@ export function InboxPage() {
                   className={`cursor-pointer border-t border-line hover:bg-pine-light/40 ${selectedId === email.id ? "bg-pine-light/60" : ""}`}
                   onClick={() => {
                     act.reset();
+                    setDownloadError(null);
                     setSelectedId(email.id);
                   }}
                 >
-                  <td className="px-4 py-3">{email.subject}</td>
+                  <td className="px-4 py-3">
+                    {email.subject}
+                    {(email.attachments?.length ?? 0) > 0 ? (
+                      <span className="ml-2 text-xs text-muted">PJ</span>
+                    ) : null}
+                  </td>
                   <td className="px-4 py-3 text-muted">{email.fromAddress}</td>
                   <td className="px-4 py-3">
                     <Badge status={email.analysis?.priority}>{email.analysis?.priority ?? email.status}</Badge>
@@ -144,6 +157,37 @@ export function InboxPage() {
                 {selected.fromAddress} · {formatDateTime(selected.receivedAt)}
               </p>
               <p className="whitespace-pre-wrap rounded-lg bg-paper p-3 text-sm">{selected.bodyText}</p>
+              {(selected.attachments?.length ?? 0) > 0 ? (
+                <div className="grid gap-2 rounded-lg border border-line bg-white p-3 text-sm">
+                  <p className="font-medium">Pièces jointes</p>
+                  <ul className="grid gap-2">
+                    {selected.attachments!.map((file) => (
+                      <li key={file.id} className="flex flex-wrap items-center justify-between gap-2">
+                        <span>
+                          {file.originalFilename}{" "}
+                          <span className="text-muted">
+                            ({file.contentType}, {formatBytes(file.sizeBytes)})
+                          </span>
+                        </span>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setDownloadError(null);
+                            void downloadAuthenticated(
+                              `/api/v1/emails/${selected.id}/attachments/${file.id}/content`,
+                              file.originalFilename,
+                            ).catch((err: unknown) => {
+                              setDownloadError(err instanceof Error ? err.message : "Téléchargement impossible");
+                            });
+                          }}
+                        >
+                          Télécharger
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
               {selected.analysis ? (
                 <div className="grid gap-2 text-sm">
                   <p>
@@ -163,6 +207,7 @@ export function InboxPage() {
                 </div>
               ) : null}
               {act.error ? <ErrorText error={act.error} /> : null}
+              {downloadError ? <p className="text-sm text-red-700">{downloadError}</p> : null}
               {act.isSuccess && act.variables ? (
                 <p className="rounded-md bg-pine-light px-3 py-2 text-sm text-pine-dark">
                   {successHint(act.variables.action)}

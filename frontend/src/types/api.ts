@@ -80,6 +80,14 @@ export type EmailAnalysis = {
   approvalStatus: string | null;
 };
 
+export type EmailAttachment = {
+  id: string;
+  originalFilename: string;
+  contentType: string;
+  sizeBytes: number;
+  checksumSha256: string | null;
+};
+
 export type Email = {
   id: string;
   subject: string;
@@ -89,6 +97,7 @@ export type Email = {
   receivedAt: string;
   status: string;
   analysis: EmailAnalysis | null;
+  attachments?: EmailAttachment[];
   autoSendEnabled: boolean;
 };
 

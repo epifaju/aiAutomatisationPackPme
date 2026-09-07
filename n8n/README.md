@@ -39,6 +39,8 @@ POST /webhook/aipack/invoices/reminder  WF031
 POST /webhook/aipack/audit              WF090
 ```
 
+Pièces jointes email (WF001/002) : le body peut inclure `attachments: [{ filename, contentType?, contentBase64 }]` (max 10, PDF/PNG/JPEG/TXT). Le JSON n8n retransmet le body tel quel vers le backend (`...body`). Stockage MinIO sous `{companyId}/emails/{emailId}/…`.
+
 Planifiés (Europe/Paris) : WF030 relances 08:00 · WF040 rapport 07:30.
 
 **WF091 Error Handler** doit rester **inactif** (pas de toggle Active). n8n le déclenche uniquement quand un autre workflow échoue (`settings.errorWorkflow`). L’activer provoque l’erreur *« no node to start the workflow »* / triangle rouge.

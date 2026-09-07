@@ -8,20 +8,31 @@ import com.aipack.ai.PromptCatalog;
 import com.aipack.audit.AuditRecord;
 import com.aipack.audit.AuditService;
 import com.aipack.audit.AuditStatus;
+import com.aipack.config.DocumentProperties;
 import com.aipack.config.EmailProperties;
+import com.aipack.document.DocumentException;
+import com.aipack.document.DocumentMimeDetector;
+import com.aipack.email.dto.EmailAttachmentResponse;
 import com.aipack.email.dto.EmailResponse;
+import com.aipack.email.dto.WebhookEmailAttachmentRequest;
 import com.aipack.email.dto.WebhookEmailRequest;
 import com.aipack.identity.Company;
 import com.aipack.identity.CompanyRepository;
 import com.aipack.identity.CompanySettings;
 import com.aipack.identity.CompanySettingsRepository;
+import com.aipack.storage.ObjectStorage;
+import com.aipack.storage.StorageException;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 import java.math.BigDecimal;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Base64;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -44,6 +55,7 @@ public class EmailService {
 
     private final EmailRepository emailRepository;
     private final EmailAnalysisRepository emailAnalysisRepository;
+    private final EmailAttachmentRepository emailAttachmentRepository;
     private final CompanyRepository companyRepository;
     private final CompanySettingsRepository companySettingsRepository;
     private final EmailMapper emailMapper;
@@ -54,10 +66,14 @@ public class EmailService {
     private final EmailAnalysisParser analysisParser;
     private final OutboundMailSender outboundMailSender;
     private final EmailProperties emailProperties;
+    private final DocumentProperties documentProperties;
+    private final DocumentMimeDetector mimeDetector;
+    private final ObjectStorage objectStorage;
 
     public EmailService(
             EmailRepository emailRepository,
             EmailAnalysisRepository emailAnalysisRepository,
+            EmailAttachmentRepository emailAttachmentRepository,
             CompanyRepository companyRepository,
             CompanySettingsRepository companySettingsRepository,
             EmailMapper emailMapper,
@@ -67,9 +83,13 @@ public class EmailService {
             PromptCatalog promptCatalog,
             EmailAnalysisParser analysisParser,
             OutboundMailSender outboundMailSender,
-            EmailProperties emailProperties) {
+            EmailProperties emailProperties,
+            DocumentProperties documentProperties,
+            DocumentMimeDetector mimeDetector,
+            ObjectStorage objectStorage) {
         this.emailRepository = emailRepository;
         this.emailAnalysisRepository = emailAnalysisRepository;
+        this.emailAttachmentRepository = emailAttachmentRepository;
         this.companyRepository = companyRepository;
         this.companySettingsRepository = companySettingsRepository;
         this.emailMapper = emailMapper;
@@ -80,6 +100,9 @@ public class EmailService {
         this.analysisParser = analysisParser;
         this.outboundMailSender = outboundMailSender;
         this.emailProperties = emailProperties;
+        this.documentProperties = documentProperties;
+        this.mimeDetector = mimeDetector;
+        this.objectStorage = objectStorage;
     }
 
     @Transactional(readOnly = true)
@@ -154,17 +177,37 @@ public class EmailService {
         email.setReceivedAt(request.receivedAt() == null ? Instant.now() : request.receivedAt());
         email.setStatus(EmailStatus.RECEIVED.name());
         Email saved = emailRepository.save(email);
+        storeAttachments(saved, request.attachments());
         audit(
                 request.companyId(),
                 WORKFLOW_INGESTION,
                 "INGESTED",
                 saved.getId(),
                 AuditStatus.SUCCESS,
-                Map.of("fromAddress", saved.getFromAddress()));
+                Map.of(
+                        "fromAddress",
+                        saved.getFromAddress(),
+                        "attachmentCount",
+                        request.attachments() == null ? 0 : request.attachments().size()));
         if (!analyze) {
             return new IngestResult(toResponse(saved, settingsOf(request.companyId())), true);
         }
         return new IngestResult(analyze(request.companyId(), saved.getId()), true);
+    }
+
+    @Transactional(readOnly = true)
+    public AttachmentContent loadAttachmentContent(UUID companyId, UUID emailId, UUID attachmentId) {
+        requireEmail(companyId, emailId);
+        EmailAttachment attachment = emailAttachmentRepository
+                .findByIdAndEmail_IdAndCompany_Id(attachmentId, emailId, companyId)
+                .orElseThrow(EmailException::attachmentNotFound);
+        try {
+            byte[] bytes = objectStorage.get(attachment.getStorageKey());
+            return new AttachmentContent(
+                    attachment.getOriginalFilename(), attachment.getContentType(), bytes);
+        } catch (StorageException ex) {
+            throw EmailException.storageFailed();
+        }
     }
 
     @Transactional
@@ -395,6 +438,16 @@ public class EmailService {
 
     private EmailResponse toResponse(Email email, CompanySettings settings) {
         EmailResponse base = emailMapper.toResponse(email);
+        List<EmailAttachmentResponse> attachments = emailAttachmentRepository
+                .findByEmail_IdAndCompany_IdOrderByCreatedAtAsc(email.getId(), email.getCompany().getId())
+                .stream()
+                .map(a -> new EmailAttachmentResponse(
+                        a.getId(),
+                        a.getOriginalFilename(),
+                        a.getContentType(),
+                        a.getSizeBytes(),
+                        a.getChecksumSha256()))
+                .toList();
         return new EmailResponse(
                 base.id(),
                 email.getCompany().getId(),
@@ -406,9 +459,81 @@ public class EmailService {
                 base.receivedAt(),
                 base.status(),
                 base.analysis(),
+                attachments,
                 autoSendEnabled(settings),
                 base.createdAt(),
                 base.updatedAt());
+    }
+
+    private void storeAttachments(Email email, List<WebhookEmailAttachmentRequest> attachments) {
+        if (attachments == null || attachments.isEmpty()) {
+            return;
+        }
+        if (attachments.size() > 10) {
+            throw EmailException.tooManyAttachments();
+        }
+        UUID companyId = email.getCompany().getId();
+        for (WebhookEmailAttachmentRequest item : attachments) {
+            byte[] content;
+            try {
+                content = Base64.getDecoder().decode(item.contentBase64().trim());
+            } catch (IllegalArgumentException ex) {
+                throw EmailException.invalidAttachment();
+            }
+            if (content.length == 0) {
+                throw EmailException.invalidAttachment();
+            }
+            if (content.length > documentProperties.maxSizeOrDefault()) {
+                throw EmailException.attachmentTooLarge();
+            }
+            DocumentMimeDetector.DetectedFile detected;
+            try {
+                detected = mimeDetector.detect(content, item.filename());
+            } catch (DocumentException ex) {
+                if ("UNSUPPORTED_TYPE".equals(ex.getCode())) {
+                    throw EmailException.unsupportedAttachmentType();
+                }
+                throw EmailException.invalidAttachment();
+            }
+            String checksum = sha256(content);
+            String storageKey =
+                    companyId + "/emails/" + email.getId() + "/" + checksum + "/" + detected.sanitizedFilename();
+            try {
+                objectStorage.put(storageKey, content, detected.contentType());
+            } catch (StorageException ex) {
+                throw EmailException.storageFailed();
+            }
+            EmailAttachment row = new EmailAttachment();
+            row.setCompany(email.getCompany());
+            row.setEmail(email);
+            row.setOriginalFilename(
+                    item.filename() == null || item.filename().isBlank()
+                            ? detected.sanitizedFilename()
+                            : item.filename().trim());
+            row.setContentType(detected.contentType());
+            row.setStorageKey(storageKey);
+            row.setSizeBytes(content.length);
+            row.setChecksumSha256(checksum);
+            try {
+                emailAttachmentRepository.save(row);
+            } catch (RuntimeException ex) {
+                try {
+                    objectStorage.delete(storageKey);
+                } catch (StorageException ignored) {
+                    // best-effort cleanup
+                }
+                throw ex;
+            }
+        }
+    }
+
+    private static String sha256(byte[] content) {
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256").digest(content);
+            return HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException(ex);
+        }
     }
 
     private Map<String, String> emailVariables(Email email) {
@@ -449,4 +574,6 @@ public class EmailService {
     }
 
     public record IngestResult(EmailResponse email, boolean created) {}
+
+    public record AttachmentContent(String filename, String contentType, byte[] bytes) {}
 }

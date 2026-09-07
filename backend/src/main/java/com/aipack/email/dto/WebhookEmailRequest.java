@@ -1,10 +1,12 @@
 package com.aipack.email.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public record WebhookEmailRequest(
@@ -15,4 +17,5 @@ public record WebhookEmailRequest(
         @Size(max = 998) String subject,
         @Size(max = 100000) String bodyText,
         Instant receivedAt,
-        Boolean analyze) {}
+        Boolean analyze,
+        @Valid @Size(max = 10) List<WebhookEmailAttachmentRequest> attachments) {}
