@@ -212,11 +212,18 @@ public class DocumentService {
         try {
             parsed = extractionParser.parse(aiResponse.text());
         } catch (AiParsingException ex) {
+            Map<String, Object> err = new LinkedHashMap<>();
+            err.put("reason", "AI_PARSING_ERROR");
+            err.put("message", ex.getMessage());
+            String raw = aiResponse.text();
+            if (raw != null && !raw.isBlank()) {
+                err.put("rawPreview", raw.length() > 500 ? raw.substring(0, 500) : raw);
+            }
             return persistExtraction(
                     document,
                     settings,
                     extractedText,
-                    Map.of("reason", "AI_PARSING_ERROR"),
+                    err,
                     null,
                     DocumentExtractionStatus.AI_PARSING_ERROR,
                     document.getDocumentType());

@@ -73,7 +73,10 @@ public class AiGateway {
             Supplier<AIResponse> decorated = CircuitBreaker.decorateSupplier(
                     circuitBreaker, Retry.decorateSupplier(retry, () -> aiProvider.generate(request)));
             AIResponse response = decorated.get();
-            if (response.isSuccess() && response.text() != null && !response.text().isBlank()) {
+            if (response.isSuccess()
+                    && response.text() != null
+                    && !response.text().isBlank()
+                    && !"document-extraction".equals(request.purpose())) {
                 cache.put(cacheKey, response.text());
             }
             logRequest(request, promptHash, response, null);
