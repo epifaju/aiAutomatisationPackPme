@@ -29,6 +29,9 @@ app:
     bucket: aipack-test
   documents:
     max-size-bytes: 20971520
+    ocr-enabled: false
+    ocr-languages: fra+eng
+    ocr-min-chars: 40
   invoices:
     auto-send: false
     scheduler-enabled: false

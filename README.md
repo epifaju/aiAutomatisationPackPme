@@ -388,7 +388,7 @@ curl -s -X POST http://localhost:8080/webhook/invoices/reminder \
 
 Upload scoped à l’entreprise, stockage objet MinIO (jamais en `bytea`). L’extraction de texte passe par Apache Tika (PDF, PNG, JPEG, TXT). Le parsing IA utilise `AIProvider` et le prompt `ollama/prompts/document-extraction.txt`. MIME contrôlé par **magic bytes** (Tika), pas seulement l’extension. Taille max : 20 Mo. Un même fichier (checksum SHA-256) n’est pas recréé.
 
-Si `confidenceScore` < seuil entreprise (`document_confidence_threshold`, 0,700 par défaut) → `REVIEW_REQUIRED`. Sans texte extractible (scan sans OCR) → revue humaine, l’IA n’est pas appelée. Parsing JSON impossible → `ERROR` / `AI_PARSING_ERROR`. Ollama indisponible → `ERROR` / `AI_UNAVAILABLE`.
+Si `confidenceScore` < seuil entreprise (`document_confidence_threshold`, 0,700 par défaut) → `REVIEW_REQUIRED`. OCR (Tesseract `fra+eng` dans l’image backend) : PDF/PNG/JPEG scannés sont OCRisés si peu de texte embarqué ; si l’OCR reste vide → revue humaine, l’IA n’est pas appelée. Parsing JSON impossible → `ERROR` / `AI_PARSING_ERROR`. Ollama indisponible → `ERROR` / `AI_UNAVAILABLE`. Variables : `DOCUMENT_OCR_ENABLED`, `DOCUMENT_OCR_LANGUAGES`, `DOCUMENT_OCR_MIN_CHARS`.
 
 | Méthode | Chemin | Auth |
 | --- | --- | --- |

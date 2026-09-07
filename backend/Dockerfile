@@ -10,7 +10,11 @@ WORKDIR /src/backend
 RUN mvn -B -DskipTests package
 
 FROM eclipse-temurin:21-jre-alpine
-RUN apk add --no-cache curl \
+RUN apk add --no-cache \
+      curl \
+      tesseract-ocr \
+      tesseract-ocr-data-eng \
+      tesseract-ocr-data-fra \
     && addgroup -S aipack \
     && adduser -S aipack -G aipack
 WORKDIR /app

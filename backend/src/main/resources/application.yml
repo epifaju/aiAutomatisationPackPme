@@ -31,6 +31,9 @@ app:
     bucket: ${MINIO_BUCKET:aipack}
   documents:
     max-size-bytes: ${DOCUMENT_MAX_SIZE_BYTES:20971520}
+    ocr-enabled: ${DOCUMENT_OCR_ENABLED:true}
+    ocr-languages: ${DOCUMENT_OCR_LANGUAGES:fra+eng}
+    ocr-min-chars: ${DOCUMENT_OCR_MIN_CHARS:40}
   invoices:
     auto-send: ${INVOICE_REMINDER_AUTO_SEND:false}
     scheduler-enabled: ${INVOICE_REMINDER_SCHEDULER_ENABLED:true}
