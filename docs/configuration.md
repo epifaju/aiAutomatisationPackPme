@@ -7,8 +7,9 @@ Copié depuis `.env.example`. **Ne jamais committer `.env`.**
 | Groupe | Variables clés | Notes |
 | --- | --- | --- |
 | Postgres | `POSTGRES_*` | Mot de passe à changer hors démo |
-| Auth | `JWT_SECRET` | ≥ 32 caractères |
-| Webhooks | `WEBHOOK_SECRET` | Header `X-Webhook-Secret` |
+| Auth | `JWT_SECRET` | ≥ 32 caractères ; placeholders refusés si `APP_ENV=production` |
+| Webhooks | `WEBHOOK_SECRET` | Header `X-Webhook-Secret` ; idem fail-fast prod |
+| Application | `APP_ENV` | `development` (défaut) ou `production` / `prod` — voir [security.md](security.md) P0.1 |
 | Rate limit | `RATE_LIMIT_*` | Bucket4j login/refresh + webhooks (voir [security.md](security.md)) |
 | Documents / OCR | `DOCUMENT_OCR_*` | Tesseract fra+eng dans l’image backend |
 | ClamAV | `CLAMAV_*` | Antivirus optionnel (profile Compose `clamav`) — [security.md](security.md) |

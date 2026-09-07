@@ -4,6 +4,7 @@ spring:
     locations: classpath:db/migration,classpath:db/seed
 
 app:
+  env: development
   jwt:
     secret: test-jwt-secret-must-be-32-chars-min
     access-token-ttl: 15m

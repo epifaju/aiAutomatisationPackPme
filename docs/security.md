@@ -3,14 +3,15 @@
 ## Principes MVP
 
 1. **Aucun secret dans Git** — `.env` gitignoré ; seuls les placeholders `.env.example`.
-2. **Validation humaine** — envois IA (emails, relances, rapports) désactivés par défaut via `*_AUTO_SEND=false`.
-3. **JWT** — secret fort (`JWT_SECRET` ≥ 32 car.) ; refresh rotatif ; réutilisation d’un refresh révoqué invalide la session.
-4. **Webhooks** — `X-Webhook-Secret` (`WEBHOOK_SECRET`).
-5. **Rate limiting (Bucket4j)** — limites in-memory par IP sur `POST /api/v1/auth/login|refresh` et `POST /webhook/**` (429 + `Retry-After`). Réglages : `RATE_LIMIT_*` / `app.rate-limit.*`. Derrière un reverse proxy, activer `RATE_LIMIT_TRUST_FORWARDED_HEADERS=true` seulement si le proxy est de confiance.
-6. **ClamAV (optionnel)** — scan antivirus des documents et pièces jointes email avant MinIO. Profile Compose `clamav` + `CLAMAV_ENABLED=true`. Malware → `422 MALWARE_DETECTED`. Si clamd down : `CLAMAV_FAIL_OPEN=true` (défaut) laisse passer avec un warning ; `false` → `503 VIRUS_SCAN_UNAVAILABLE`.
-7. **Audit** — journal append-only ; métadonnées filtrées (pas de mots de passe / tokens).
-8. **n8n** — `N8N_ENCRYPTION_KEY` stable ; dossier `n8n/credentials/` non versionné.
-9. **Backups** — `.env` exclu par défaut ; `INCLUDE_ENV=1` / `-IncludeEnv` uniquement si l’archive est chiffrée / stockée de façon sûre. Postgres + `n8n_data` + `minio_data` (documents) sont inclus.
+2. **Fail-fast production (P0.1)** — si `APP_ENV=production` (ou `prod`), le backend **refuse de démarrer** lorsque `JWT_SECRET`, `WEBHOOK_SECRET`, `POSTGRES_PASSWORD` / `spring.datasource.password`, ou `MINIO_*` sont vides, trop courts, ou égaux aux placeholders `.env.example` (ex. `change-me-…`, `aipack-dev-change-me`, `minioadmin`).
+3. **Validation humaine** — envois IA (emails, relances, rapports) désactivés par défaut via `*_AUTO_SEND=false`.
+4. **JWT** — secret fort (`JWT_SECRET` ≥ 32 car.) ; refresh rotatif ; réutilisation d’un refresh révoqué invalide la session.
+5. **Webhooks** — `X-Webhook-Secret` (`WEBHOOK_SECRET`).
+6. **Rate limiting (Bucket4j)** — limites in-memory par IP sur `POST /api/v1/auth/login|refresh` et `POST /webhook/**` (429 + `Retry-After`). Réglages : `RATE_LIMIT_*` / `app.rate-limit.*`. Derrière un reverse proxy, activer `RATE_LIMIT_TRUST_FORWARDED_HEADERS=true` seulement si le proxy est de confiance.
+7. **ClamAV (optionnel)** — scan antivirus des documents et pièces jointes email avant MinIO. Profile Compose `clamav` + `CLAMAV_ENABLED=true`. Malware → `422 MALWARE_DETECTED`. Si clamd down : `CLAMAV_FAIL_OPEN=true` (défaut) laisse passer avec un warning ; `false` → `503 VIRUS_SCAN_UNAVAILABLE`.
+8. **Audit** — journal append-only ; métadonnées filtrées (pas de mots de passe / tokens).
+9. **n8n** — `N8N_ENCRYPTION_KEY` stable ; dossier `n8n/credentials/` non versionné.
+10. **Backups** — `.env` exclu par défaut ; `INCLUDE_ENV=1` / `-IncludeEnv` uniquement si l’archive est chiffrée / stockée de façon sûre. Postgres + `n8n_data` + `minio_data` (documents) sont inclus.
 
 ## Activer ClamAV
 
@@ -28,6 +29,7 @@ Premier démarrage : téléchargement des signatures (souvent 1–3 min). Health
 
 ## Checklist avant production
 
+- [ ] Définir `APP_ENV=production` **après** avoir remplacé tous les placeholders (sinon le backend ne démarre pas)
 - [ ] Changer `POSTGRES_PASSWORD`, `JWT_SECRET`, `WEBHOOK_SECRET`, `N8N_ENCRYPTION_KEY`, `MINIO_*`
 - [ ] Désactiver ou supprimer le compte démo
 - [ ] Exposer uniquement via reverse proxy HTTPS (Caddy profile `proxy` — [proxy.md](proxy.md))
