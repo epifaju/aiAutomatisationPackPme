@@ -24,11 +24,13 @@ public class AiConfig {
     AIProvider aiProvider(AiProperties properties) {
         return switch (properties.normalizedProvider()) {
             case "openai" -> new OpenAiCompatibleAIProvider(properties);
+            case "anthropic" -> new AnthropicAIProvider(properties);
             case "ollama" -> new OllamaAIProvider(properties);
             default -> throw new IllegalStateException(
                     "Unsupported AI_PROVIDER='"
                             + properties.provider()
-                            + "'. Supported: ollama, openai (aliases: openai-compatible, external).");
+                            + "'. Supported: ollama, openai (aliases: openai-compatible, external),"
+                            + " anthropic (alias: claude).");
         };
     }
 }

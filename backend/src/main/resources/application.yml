@@ -59,6 +59,10 @@ app:
       api-key: ${AI_OPENAI_API_KEY:}
       model: ${AI_OPENAI_MODEL:gpt-4o-mini}
       json-mode: ${AI_OPENAI_JSON_MODE:true}
+    anthropic:
+      base-url: ${AI_ANTHROPIC_BASE_URL:https://api.anthropic.com}
+      api-key: ${AI_ANTHROPIC_API_KEY:}
+      model: ${AI_ANTHROPIC_MODEL:claude-3-5-haiku-latest}
     cache:
       enabled: ${AI_CACHE_ENABLED:true}
       ttl: ${AI_CACHE_TTL:1h}

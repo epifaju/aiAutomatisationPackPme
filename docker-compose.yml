@@ -212,6 +212,9 @@ services:
       AI_OPENAI_API_KEY: ${AI_OPENAI_API_KEY:-}
       AI_OPENAI_MODEL: ${AI_OPENAI_MODEL:-gpt-4o-mini}
       AI_OPENAI_JSON_MODE: ${AI_OPENAI_JSON_MODE:-true}
+      AI_ANTHROPIC_BASE_URL: ${AI_ANTHROPIC_BASE_URL:-https://api.anthropic.com}
+      AI_ANTHROPIC_API_KEY: ${AI_ANTHROPIC_API_KEY:-}
+      AI_ANTHROPIC_MODEL: ${AI_ANTHROPIC_MODEL:-claude-3-5-haiku-latest}
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"
       SMTP_USER: ${SMTP_USER:-}

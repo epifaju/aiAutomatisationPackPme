@@ -34,7 +34,7 @@ Entrée unique optionnelle : profile Compose `proxy` (Caddy) — [proxy.md](prox
 - Java 21 / Spring Boot 3.5
 - Sécurité JWT (access 15 min, refresh 7 j rotatif)
 - Modules : auth, audit, leads, emails, documents, invoices, reports, settings, automations
-- Fournisseur IA abstrait (`AIProvider`) → Ollama (défaut) ou OpenAI-compatible (`AI_PROVIDER=openai`)
+- Fournisseur IA abstrait (`AIProvider`) → Ollama (défaut), OpenAI-compatible (`openai`), ou Anthropic Messages (`anthropic`)
 - Logs JSON structurés (Logback)
 
 ## Frontend

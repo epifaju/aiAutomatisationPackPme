@@ -15,22 +15,24 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class OpenAiCompatibleAIProviderTest {
+class AnthropicAIProviderTest {
 
     private HttpServer server;
     private String baseUrl;
-    private final AtomicReference<String> lastAuth = new AtomicReference<>();
+    private final AtomicReference<String> lastApiKey = new AtomicReference<>();
+    private final AtomicReference<String> lastVersion = new AtomicReference<>();
     private final AtomicReference<String> lastBody = new AtomicReference<>();
 
     @BeforeEach
     void startServer() throws IOException {
         server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
-        server.createContext("/chat/completions", exchange -> {
-            lastAuth.set(exchange.getRequestHeaders().getFirst("Authorization"));
+        server.createContext("/v1/messages", exchange -> {
+            lastApiKey.set(exchange.getRequestHeaders().getFirst("x-api-key"));
+            lastVersion.set(exchange.getRequestHeaders().getFirst("anthropic-version"));
             lastBody.set(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
             byte[] response =
                     """
-                    {"choices":[{"message":{"role":"assistant","content":"{\\"score\\":88,\\"summary\\":\\"ok\\"}"}}]}
+                    {"content":[{"type":"text","text":"{\\"score\\":91,\\"summary\\":\\"claude-ok\\"}"}]}
                     """
                             .getBytes(StandardCharsets.UTF_8);
             exchange.getResponseHeaders().add("Content-Type", "application/json");
@@ -51,48 +53,40 @@ class OpenAiCompatibleAIProviderTest {
     }
 
     @Test
-    void generatePostsChatCompletionsAndReturnsContent() {
-        OpenAiCompatibleAIProvider provider = new OpenAiCompatibleAIProvider(props("test-key", true));
+    void generatePostsMessagesAndReturnsText() {
+        AnthropicAIProvider provider = new AnthropicAIProvider(props("sk-ant-test"));
         AIResponse response =
                 provider.generate(new AIRequest(UUID.randomUUID(), "lead-qualification", "{\"hello\":true}"));
 
         assertThat(response.isSuccess()).isTrue();
-        assertThat(response.provider()).isEqualTo("OPENAI");
-        assertThat(response.model()).isEqualTo("gpt-4o-mini");
-        assertThat(response.text()).contains("\"score\":88");
-        assertThat(lastAuth.get()).isEqualTo("Bearer test-key");
-        assertThat(lastBody.get()).contains("\"response_format\"").contains("json_object");
-    }
-
-    @Test
-    void generateOmitsJsonModeWhenDisabled() {
-        OpenAiCompatibleAIProvider provider = new OpenAiCompatibleAIProvider(props("test-key", false));
-        provider.generate(new AIRequest(UUID.randomUUID(), "lead-qualification", "prompt"));
-        assertThat(lastBody.get()).doesNotContain("response_format");
+        assertThat(response.provider()).isEqualTo("ANTHROPIC");
+        assertThat(response.model()).isEqualTo("claude-3-5-haiku-latest");
+        assertThat(response.text()).contains("\"score\":91");
+        assertThat(lastApiKey.get()).isEqualTo("sk-ant-test");
+        assertThat(lastVersion.get()).isEqualTo("2023-06-01");
+        assertThat(lastBody.get()).contains("\"system\"").contains("\"messages\"");
     }
 
     @Test
     void requiresApiKey() {
-        assertThatThrownBy(() -> new OpenAiCompatibleAIProvider(props("  ", true)))
+        assertThatThrownBy(() -> new AnthropicAIProvider(props(" ")))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("AI_OPENAI_API_KEY");
+                .hasMessageContaining("AI_ANTHROPIC_API_KEY");
     }
 
     @Test
-    void normalizedProviderAliasesOpenai() {
-        assertThat(new AiProperties("openai-compatible", null, null, null, null, null).normalizedProvider())
-                .isEqualTo("openai");
-        assertThat(new AiProperties("external", null, null, null, null, null).normalizedProvider()).isEqualTo("openai");
-        assertThat(new AiProperties(null, null, null, null, null, null).normalizedProvider()).isEqualTo("ollama");
+    void normalizedProviderAliasesClaude() {
+        assertThat(new AiProperties("claude", null, null, null, null, null).normalizedProvider())
+                .isEqualTo("anthropic");
     }
 
-    private AiProperties props(String apiKey, boolean jsonMode) {
+    private AiProperties props(String apiKey) {
         return new AiProperties(
-                "openai",
+                "anthropic",
                 Duration.ofSeconds(5),
                 new AiProperties.Ollama("http://localhost:11434", "llama3.2"),
-                new AiProperties.OpenAi(baseUrl, apiKey, "gpt-4o-mini", jsonMode),
-                new AiProperties.Anthropic("https://api.anthropic.com", "", "claude-3-5-haiku-latest"),
+                new AiProperties.OpenAi("https://api.openai.com/v1", "", "gpt-4o-mini", true),
+                new AiProperties.Anthropic(baseUrl, apiKey, "claude-3-5-haiku-latest"),
                 new AiProperties.Cache(false, Duration.ofMinutes(1), "localhost", 6379));
     }
 }

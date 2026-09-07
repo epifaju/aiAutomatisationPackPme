@@ -14,7 +14,7 @@ Copié depuis `.env.example`. **Ne jamais committer `.env`.**
 | ClamAV | `CLAMAV_*` | Antivirus optionnel (profile Compose `clamav`) — [security.md](security.md) |
 | Reverse proxy | `PROXY_*` | Caddy optionnel — [proxy.md](proxy.md) |
 | n8n | `N8N_ENCRYPTION_KEY`, `N8N_PORT`, `N8N_WEBHOOK_URL` | Clé stable (chiffrement credentials n8n) |
-| IA | `AI_PROVIDER`, `OLLAMA_*`, `AI_OPENAI_*`, `AI_TIMEOUT` | `ollama` (défaut) ou `openai` (Chat Completions) |
+| IA | `AI_PROVIDER`, `OLLAMA_*`, `AI_OPENAI_*`, `AI_ANTHROPIC_*`, `AI_TIMEOUT` | `ollama` (défaut), `openai`, ou `anthropic` |
 | Emails / factures / rapports | `*_AUTO_SEND` | `false` par défaut (validation humaine) |
 | MinIO | `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY` | Changer en production |
 | SMTP | `SMTP_HOST`, `MAILPIT_*` | Mailpit en développement |
