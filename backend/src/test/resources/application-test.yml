@@ -10,6 +10,15 @@ app:
     refresh-token-ttl: 7d
   webhook:
     secret: test-webhook-secret-16
+  rate-limit:
+    enabled: true
+    trust-forwarded-headers: false
+    auth:
+      capacity: 1000
+      refill-period: 1m
+    webhook:
+      capacity: 1000
+      refill-period: 1m
   email:
     auto-send: false
   storage:

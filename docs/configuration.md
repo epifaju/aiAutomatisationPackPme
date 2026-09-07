@@ -9,6 +9,7 @@ Copié depuis `.env.example`. **Ne jamais committer `.env`.**
 | Postgres | `POSTGRES_*` | Mot de passe à changer hors démo |
 | Auth | `JWT_SECRET` | ≥ 32 caractères |
 | Webhooks | `WEBHOOK_SECRET` | Header `X-Webhook-Secret` |
+| Rate limit | `RATE_LIMIT_*` | Bucket4j login/refresh + webhooks (voir [security.md](security.md)) |
 | n8n | `N8N_ENCRYPTION_KEY`, `N8N_PORT`, `N8N_WEBHOOK_URL` | Clé stable (chiffrement credentials n8n) |
 | IA | `OLLAMA_MODEL`, `AI_TIMEOUT`, `OLLAMA_KEEP_ALIVE` | CPU : timeouts longs |
 | Emails / factures / rapports | `*_AUTO_SEND` | `false` par défaut (validation humaine) |

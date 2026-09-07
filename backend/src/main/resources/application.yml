@@ -12,6 +12,15 @@ app:
     refresh-token-ttl: 7d
   webhook:
     secret: ${WEBHOOK_SECRET:change-me-webhook-secret-min-16-chars}
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    trust-forwarded-headers: ${RATE_LIMIT_TRUST_FORWARDED_HEADERS:false}
+    auth:
+      capacity: ${RATE_LIMIT_AUTH_CAPACITY:20}
+      refill-period: ${RATE_LIMIT_AUTH_REFILL:1m}
+    webhook:
+      capacity: ${RATE_LIMIT_WEBHOOK_CAPACITY:120}
+      refill-period: ${RATE_LIMIT_WEBHOOK_REFILL:1m}
   email:
     auto-send: ${AI_GENERATED_EMAIL_AUTO_SEND:false}
   storage:
