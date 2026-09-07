@@ -273,14 +273,20 @@ Journal append-only pour les automatisations (PRD §15). Les secrets (`password`
 | Méthode | Chemin | Auth |
 | --- | --- | --- |
 | `GET` | `/api/v1/audit` | `Authorization: Bearer <access>` |
+| `POST` | `/webhook/audit/n8n-error` | `X-Webhook-Secret` |
 
 Filtres optionnels : `workflow`, `action`, `entityType`, `entityId`, `status` (`SUCCESS` \| `ERROR` \| `SKIPPED`), `from`, `to`. Pagination Spring (`page`, `size`, tri par `createdAt` desc). Les résultats sont limités à l’entreprise du jeton.
 
-Login et logout écrivent une entrée (`LOGIN` / `LOGOUT`, `entityType=USER`). Les modules métier appellent `AuditService.record(...)`.
+Login et logout écrivent une entrée (`LOGIN` / `LOGOUT`, `entityType=USER`). Les modules métier appellent `AuditService.record(...)`. Les erreurs n8n (WF091) passent par `POST /webhook/audit/n8n-error` (`action=N8N_WORKFLOW_ERROR`, `entityType=WORKFLOW`).
 
 ```bash
 curl -s "http://localhost:8080/api/v1/audit?size=20" \
   -H "Authorization: Bearer <accessToken>"
+
+curl -s -X POST http://localhost:8080/webhook/audit/n8n-error \
+  -H "X-Webhook-Secret: $WEBHOOK_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"companyId":"aaaaaaaa-0000-4000-8000-000000000001","workflow":"[AIPACK][LEAD] Capture","execution":"123","errorType":"NodeApiError","errorMessage":"Backend returned 500"}'
 ```
 
 ## Leads (Phase 6)

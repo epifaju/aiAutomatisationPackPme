@@ -17,7 +17,7 @@ Les définitions versionnées vivent dans `n8n/workflows/`. L’import est autom
 | WF031 | `wf031invremindr.json` | Relance |
 | WF040 | `wf040dailyrepor.json` | Rapport quotidien |
 | WF090 | `wf090auditloggr.json` | Journalisation audit |
-| WF091 | `wf091errorhandl.json` | Handler d’erreurs (**laisser inactif**) |
+| WF091 | `wf091errorhandl.json` | Handler d’erreurs → audit backend (**laisser inactif**) |
 
 Préfixe UI : `[AIPACK]…`.
 

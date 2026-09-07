@@ -101,6 +101,44 @@ class AuditIT {
     }
 
     @Test
+    void n8nErrorWebhookRequiresSecretThenWritesErrorAudit() throws Exception {
+        Map<String, Object> payload = Map.of(
+                "companyId",
+                DEMO_COMPANY.toString(),
+                "workflow",
+                "[AIPACK][LEAD] Capture",
+                "execution",
+                "exec-wf091-it-001",
+                "errorType",
+                "NodeApiError",
+                "errorMessage",
+                "Backend returned 500",
+                "metadata",
+                Map.of("lastNode", "Backend", "secret", "should-redact", "accessToken", "abc"));
+
+        ResponseEntity<String> unauthorized =
+                restTemplate.postForEntity("/webhook/audit/n8n-error", jsonObject(payload), String.class);
+        assertThat(unauthorized.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+
+        ResponseEntity<String> created =
+                restTemplate.postForEntity("/webhook/audit/n8n-error", webhook(payload), String.class);
+        assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        JsonNode data = objectMapper.readTree(created.getBody()).path("data");
+        assertThat(data.path("action").asText()).isEqualTo("N8N_WORKFLOW_ERROR");
+        assertThat(data.path("entityType").asText()).isEqualTo("WORKFLOW");
+        assertThat(data.path("entityId").asText()).isEqualTo("exec-wf091-it-001");
+        assertThat(data.path("status").asText()).isEqualTo("ERROR");
+        assertThat(data.path("workflow").asText()).isEqualTo("[AIPACK][LEAD] Capture");
+        assertThat(data.path("metadata").path("secret").asText()).isEqualTo("[REDACTED]");
+        assertThat(data.path("metadata").path("accessToken").asText()).isEqualTo("[REDACTED]");
+        assertThat(data.path("metadata").path("errorType").asText()).isEqualTo("NodeApiError");
+
+        String access = login();
+        JsonNode listed = getAudit(access, "?action=N8N_WORKFLOW_ERROR&entityId=exec-wf091-it-001&size=5");
+        assertThat(listed.path("totalElements").asInt()).isGreaterThanOrEqualTo(1);
+    }
+
+    @Test
     void recordStripsSecretsAndDoesNotLeakOtherCompanies() throws Exception {
         UUID otherCompany = UUID.fromString("aaaaaaaa-0000-4000-8000-000000000099");
         jdbcTemplate.update(
@@ -168,6 +206,19 @@ class AuditIT {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         return new HttpEntity<>(body, headers);
+    }
+
+    private HttpEntity<Map<String, Object>> jsonObject(Map<String, ?> body) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        return new HttpEntity<>(Map.copyOf(body), headers);
+    }
+
+    private HttpEntity<Map<String, Object>> webhook(Map<String, ?> body) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("X-Webhook-Secret", "test-webhook-secret-16");
+        return new HttpEntity<>(Map.copyOf(body), headers);
     }
 
     private HttpEntity<Void> bearer(String accessToken) {

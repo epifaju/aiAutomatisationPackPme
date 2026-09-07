@@ -43,7 +43,7 @@ Pièces jointes email (WF001/002) : le body peut inclure `attachments: [{ filena
 
 Planifiés (Europe/Paris) : WF030 relances 08:00 · WF040 rapport 07:30.
 
-**WF091 Error Handler** doit rester **inactif** (pas de toggle Active). n8n le déclenche uniquement quand un autre workflow échoue (`settings.errorWorkflow`). L’activer provoque l’erreur *« no node to start the workflow »* / triangle rouge.
+**WF091 Error Handler** doit rester **inactif** (pas de toggle Active). n8n le déclenche uniquement quand un autre workflow échoue (`settings.errorWorkflow`). L’activer provoque l’erreur *« no node to start the workflow »* / triangle rouge. En cas d’échec, WF091 sanitize le payload puis appelle `POST /webhook/audit/n8n-error` (audit `ERROR` / `N8N_WORKFLOW_ERROR`).
 
 UI n8n : `http://localhost:${N8N_PORT}` (défaut 5678).
 

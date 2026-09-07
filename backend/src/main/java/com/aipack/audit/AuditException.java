@@ -17,6 +17,10 @@ public class AuditException extends RuntimeException {
         return new AuditException("INVALID_STATUS", "Statut d'audit inconnu", HttpStatus.BAD_REQUEST);
     }
 
+    public static AuditException companyNotFound() {
+        return new AuditException("COMPANY_NOT_FOUND", "Entreprise introuvable", HttpStatus.NOT_FOUND);
+    }
+
     public String getCode() {
         return code;
     }

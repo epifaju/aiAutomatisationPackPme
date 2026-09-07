@@ -1,13 +1,17 @@
 package com.aipack.audit;
 
 import com.aipack.audit.dto.AuditLogResponse;
+import com.aipack.audit.dto.WebhookN8nErrorRequest;
 import com.aipack.identity.Company;
+import com.aipack.identity.CompanyRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.criteria.Predicate;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -22,16 +26,22 @@ public class AuditService {
     private static final int MAX_ACTION_LENGTH = 64;
     private static final int MAX_ENTITY_TYPE_LENGTH = 64;
     private static final int MAX_ENTITY_ID_LENGTH = 64;
+    private static final int MAX_ERROR_MESSAGE_CHARS = 2_000;
 
     private final AuditLogRepository auditLogRepository;
     private final AuditLogMapper auditLogMapper;
     private final EntityManager entityManager;
+    private final CompanyRepository companyRepository;
 
     public AuditService(
-            AuditLogRepository auditLogRepository, AuditLogMapper auditLogMapper, EntityManager entityManager) {
+            AuditLogRepository auditLogRepository,
+            AuditLogMapper auditLogMapper,
+            EntityManager entityManager,
+            CompanyRepository companyRepository) {
         this.auditLogRepository = auditLogRepository;
         this.auditLogMapper = auditLogMapper;
         this.entityManager = entityManager;
+        this.companyRepository = companyRepository;
     }
 
     @Transactional
@@ -46,6 +56,44 @@ public class AuditService {
         log.setStatus(record.status().name());
         log.setMetadata(MetadataSanitizer.sanitize(record.metadata()));
         return auditLogMapper.toResponse(auditLogRepository.save(log));
+    }
+
+    @Transactional
+    public AuditLogResponse recordN8nError(WebhookN8nErrorRequest request) {
+        if (!companyRepository.existsById(request.companyId())) {
+            throw AuditException.companyNotFound();
+        }
+        Map<String, Object> metadata = new LinkedHashMap<>();
+        if (request.metadata() != null) {
+            metadata.putAll(request.metadata());
+        }
+        if (request.errorType() != null && !request.errorType().isBlank()) {
+            metadata.putIfAbsent("errorType", truncate(request.errorType().trim(), 128));
+        }
+        if (request.errorMessage() != null && !request.errorMessage().isBlank()) {
+            metadata.putIfAbsent("errorMessage", truncate(request.errorMessage().trim(), MAX_ERROR_MESSAGE_CHARS));
+        }
+        if (request.execution() != null && !request.execution().isBlank()) {
+            metadata.putIfAbsent("executionId", truncate(request.execution().trim(), 128));
+        }
+        String workflow = blankToNull(request.workflow());
+        if (workflow == null) {
+            workflow = "n8n";
+        } else if (workflow.length() > MAX_WORKFLOW_LENGTH) {
+            workflow = workflow.substring(0, MAX_WORKFLOW_LENGTH);
+        }
+        String entityId = blankToNull(request.execution());
+        if (entityId != null && entityId.length() > MAX_ENTITY_ID_LENGTH) {
+            entityId = entityId.substring(0, MAX_ENTITY_ID_LENGTH);
+        }
+        return record(new AuditRecord(
+                request.companyId(),
+                workflow,
+                "N8N_WORKFLOW_ERROR",
+                "WORKFLOW",
+                entityId,
+                AuditStatus.ERROR,
+                metadata));
     }
 
     @Transactional(readOnly = true)
@@ -132,5 +180,12 @@ public class AuditService {
             return null;
         }
         return value.trim();
+    }
+
+    private static String truncate(String value, int max) {
+        if (value.length() <= max) {
+            return value;
+        }
+        return value.substring(0, max);
     }
 }

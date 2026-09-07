@@ -319,7 +319,7 @@ const errorHandler = {
   id: ERROR_WF,
   name: "[AIPACK][ERROR] Handler",
   description:
-    "Error workflow (keep inactive). Sanitizes failed execution payloads; no secrets. Invoked via settings.errorWorkflow. · v1.0.1",
+    "Error workflow (keep inactive). Sanitizes failed execution payloads and posts ERROR to backend audit. Invoked via settings.errorWorkflow. · v1.1.0",
   nodes: [
     {
       parameters: {},
@@ -332,6 +332,7 @@ const errorHandler = {
     {
       parameters: {
         jsCode: `const item = $input.first().json;
+const companyId = (typeof $env !== 'undefined' && $env.DEMO_COMPANY_ID) || '${DEMO_COMPANY}';
 const redact = (value) => {
   if (value && typeof value === 'object') {
     const out = Array.isArray(value) ? [] : {};
@@ -345,13 +346,18 @@ const redact = (value) => {
   }
   return value;
 };
+const workflowName = item.workflow?.name || item.workflowName || 'unknown';
+const executionId = item.execution?.id || item.executionId || null;
 return [{ json: {
-  workflow: item.workflow?.name || item.workflowName || 'unknown',
-  execution: item.execution?.id || item.executionId || null,
-  error_type: item.execution?.error?.name || 'WORKFLOW_ERROR',
-  error_message: item.execution?.error?.message || 'Workflow execution failed',
-  timestamp: new Date().toISOString(),
-  metadata: redact({ lastNode: item.execution?.lastNodeExecuted || null }),
+  companyId,
+  workflow: String(workflowName).slice(0, 128),
+  execution: executionId == null ? null : String(executionId).slice(0, 64),
+  errorType: item.execution?.error?.name || 'WORKFLOW_ERROR',
+  errorMessage: String(item.execution?.error?.message || 'Workflow execution failed').slice(0, 2000),
+  metadata: redact({
+    lastNode: item.execution?.lastNodeExecuted || null,
+    n8nWorkflowId: item.workflow?.id || null,
+  }),
 } }];`,
       },
       id: `${ERROR_WF}-code`,
@@ -360,13 +366,20 @@ return [{ json: {
       typeVersion: 2,
       position: [460, 300],
     },
+    {
+      ...httpNode(`${ERROR_WF}-http`, "webhook/audit/n8n-error", 30000),
+      name: "Backend audit",
+    },
   ],
-  connections: connect("Error Trigger", "Sanitize error"),
+  connections: {
+    ...connect("Error Trigger", "Sanitize error"),
+    ...connect("Sanitize error", "Backend audit"),
+  },
   settings: settings(null),
   staticData: null,
   meta: { templateCredsSetupCompleted: true },
   pinData: {},
-  versionId: `${ERROR_WF}-v1.0.0`,
+  versionId: `${ERROR_WF}-v1.1.0`,
 };
 
 for (const workflow of [...workflows, auditLogger, errorHandler]) {

@@ -66,7 +66,8 @@ public class SecurityConfig {
                                 "/webhook/email/incoming",
                                 "/webhook/documents/process",
                                 "/webhook/invoices/reminder",
-                                "/webhook/reports/daily")
+                                "/webhook/reports/daily",
+                                "/webhook/audit/n8n-error")
                         .permitAll()
                         .anyRequest()
                         .authenticated())

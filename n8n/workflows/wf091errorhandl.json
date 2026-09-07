@@ -1,7 +1,7 @@
 {
   "id": "wf091errorhandl",
   "name": "[AIPACK][ERROR] Handler",
-  "description": "Error workflow (keep inactive). Sanitizes failed execution payloads; no secrets. Invoked via settings.errorWorkflow. · v1.0.1",
+  "description": "Error workflow (keep inactive). Sanitizes failed execution payloads and posts ERROR to backend audit. Invoked via settings.errorWorkflow. · v1.1.0",
   "nodes": [
     {
       "parameters": {},
@@ -16,7 +16,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const item = $input.first().json;\nconst redact = (value) => {\n  if (value && typeof value === 'object') {\n    const out = Array.isArray(value) ? [] : {};\n    for (const [key, nested] of Object.entries(value)) {\n      const lower = String(key).toLowerCase();\n      out[key] = ['password', 'secret', 'token', 'authorization'].some((part) => lower.includes(part))\n        ? '[redacted]'\n        : redact(nested);\n    }\n    return out;\n  }\n  return value;\n};\nreturn [{ json: {\n  workflow: item.workflow?.name || item.workflowName || 'unknown',\n  execution: item.execution?.id || item.executionId || null,\n  error_type: item.execution?.error?.name || 'WORKFLOW_ERROR',\n  error_message: item.execution?.error?.message || 'Workflow execution failed',\n  timestamp: new Date().toISOString(),\n  metadata: redact({ lastNode: item.execution?.lastNodeExecuted || null }),\n} }];"
+        "jsCode": "const item = $input.first().json;\nconst companyId = (typeof $env !== 'undefined' && $env.DEMO_COMPANY_ID) || 'aaaaaaaa-0000-4000-8000-000000000001';\nconst redact = (value) => {\n  if (value && typeof value === 'object') {\n    const out = Array.isArray(value) ? [] : {};\n    for (const [key, nested] of Object.entries(value)) {\n      const lower = String(key).toLowerCase();\n      out[key] = ['password', 'secret', 'token', 'authorization'].some((part) => lower.includes(part))\n        ? '[redacted]'\n        : redact(nested);\n    }\n    return out;\n  }\n  return value;\n};\nconst workflowName = item.workflow?.name || item.workflowName || 'unknown';\nconst executionId = item.execution?.id || item.executionId || null;\nreturn [{ json: {\n  companyId,\n  workflow: String(workflowName).slice(0, 128),\n  execution: executionId == null ? null : String(executionId).slice(0, 64),\n  errorType: item.execution?.error?.name || 'WORKFLOW_ERROR',\n  errorMessage: String(item.execution?.error?.message || 'Workflow execution failed').slice(0, 2000),\n  metadata: redact({\n    lastNode: item.execution?.lastNodeExecuted || null,\n    n8nWorkflowId: item.workflow?.id || null,\n  }),\n} }];"
       },
       "id": "wf091errorhandl-code",
       "name": "Sanitize error",
@@ -26,6 +26,42 @@
         460,
         300
       ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.BACKEND_BASE_URL }}/webhook/audit/n8n-error",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Webhook-Secret",
+              "value": "={{ $env.WEBHOOK_SECRET }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "wf091errorhandl-http",
+      "name": "Backend audit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        300
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000
     }
   ],
   "connections": {
@@ -34,6 +70,17 @@
         [
           {
             "node": "Sanitize error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sanitize error": {
+      "main": [
+        [
+          {
+            "node": "Backend audit",
             "type": "main",
             "index": 0
           }
@@ -51,6 +98,6 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "wf091errorhandl-v1.0.0",
+  "versionId": "wf091errorhandl-v1.1.0",
   "active": false
 }

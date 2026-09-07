@@ -27,7 +27,7 @@ Ollama indisponible ou timeout. Vérifier `GET /api/tags` sur le port Ollama, lo
 
 ## Triangle rouge sur workflow Error Handler (WF091)
 
-Normal : le nœud **Error Trigger** n’est pas activable. Le workflow doit rester **inactif**. Les autres workflows `[AIPACK]*` doivent être actifs après `n8n-init` + restart n8n.
+Normal : le nœud **Error Trigger** n’est pas activable. Le workflow doit rester **inactif**. Les autres workflows `[AIPACK]*` doivent être actifs après `n8n-init` + restart n8n. WF091 écrit tout de même dans l’audit backend (`POST /webhook/audit/n8n-error`) quand un autre workflow échoue.
 
 ## n8n workflows manquants
 
