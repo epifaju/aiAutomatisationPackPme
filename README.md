@@ -157,8 +157,9 @@ $env:BACKEND_PORT="18080"
 | `redis` | Cache / files légères | défaut | 1 |
 | `backend` | API Spring Boot | défaut | 2 |
 | `frontend` | Dashboard React | défaut | 11 |
+| `reverse-proxy` | Caddy (TLS / entrée unique) | `proxy` (off) | V2 / prod |
 
-Le reverse proxy (Traefik/Caddy) n’est pas activé. Redis n’est une dépendance d’aucun autre service : le reste du stack démarre même si Redis est arrêté.
+Le reverse proxy Caddy est **optionnel** (`--profile proxy`) — voir [docs/proxy.md](docs/proxy.md). Redis n’est une dépendance d’aucun autre service : le reste du stack démarre même si Redis est arrêté.
 
 ## Arborescence
 
@@ -193,6 +194,7 @@ ai-automation-pack/
 ├── ollama/
 │   ├── models/                 # gitignoré (poids)
 │   └── prompts/                # prompts IA (hors code)
+├── proxy/                      # Caddy (profile Compose proxy)
 ├── scripts/                    # install, healthcheck, backup, restore, package-release
 ├── docs/                       # installation, config, architecture, security, …
 └── tests/

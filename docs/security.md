@@ -15,9 +15,10 @@
 
 - [ ] Changer `POSTGRES_PASSWORD`, `JWT_SECRET`, `WEBHOOK_SECRET`, `N8N_ENCRYPTION_KEY`, `MINIO_*`
 - [ ] Désactiver ou supprimer le compte démo
-- [ ] Exposer uniquement via reverse proxy HTTPS (Traefik/Caddy — non inclus MVP)
+- [ ] Exposer uniquement via reverse proxy HTTPS (Caddy profile `proxy` — [proxy.md](proxy.md))
+- [ ] Activer `RATE_LIMIT_TRUST_FORWARDED_HEADERS=true` derrière le proxy de confiance
 - [ ] Ne pas publier Mailpit / MinIO console sur Internet
-- [ ] Restreindre les ports hôte (firewall)
+- [ ] Restreindre les ports hôte (firewall) ; retirer les ports `frontend`/`backend` une fois Caddy en place
 - [ ] Vérifier que les flags `*_AUTO_SEND` correspondent à la politique client
 - [ ] Planifier `scripts/backup.*` + stockage hors machine
 

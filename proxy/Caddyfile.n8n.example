@@ -1,0 +1,16 @@
+# Optional second site for n8n (subdomain) — merge into Caddyfile or use as reference.
+# Example:
+#   N8N_PROXY_SITE=n8n.example.com
+#   N8N_HOST=n8n.example.com
+#   N8N_PROTOCOL=https
+#   N8N_WEBHOOK_URL=https://n8n.example.com/
+#   WEBHOOK_URL=https://n8n.example.com/
+#
+# {$N8N_PROXY_SITE} {
+# 	encode zstd gzip
+# 	reverse_proxy n8n:5678 {
+# 		header_up X-Real-IP {remote_host}
+# 		header_up X-Forwarded-For {remote_host}
+# 		header_up X-Forwarded-Proto {scheme}
+# 	}
+# }

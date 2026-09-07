@@ -1,0 +1,49 @@
+# AI Automation Pack — Caddy reverse proxy (optional)
+# Activated with: docker compose --profile proxy up -d
+#
+# Inside the container we always listen on :80 (and :443 when PROXY_SITE is a hostname).
+# Host ports are mapped via PROXY_HTTP_PORT / PROXY_HTTPS_PORT in Compose.
+#
+# Local HTTP (default):
+#   PROXY_SITE=:80
+# Production TLS (Let's Encrypt):
+#   PROXY_SITE=app.example.com
+#   PROXY_ACME_EMAIL=admin@example.com
+#   APP_BASE_URL=https://app.example.com
+#   RATE_LIMIT_TRUST_FORWARDED_HEADERS=true
+#
+# Do not expose Mailpit / MinIO console / Postgres through this proxy.
+# For Let's Encrypt, set PROXY_SITE=app.example.com and add at the top:
+#   { email admin@example.com }
+
+{$PROXY_SITE::80} {
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# Public webhooks → backend (frontend nginx only proxies /api/)
+	handle /webhook* {
+		reverse_proxy backend:8080 {
+			header_up X-Real-IP {remote_host}
+			transport http {
+				read_timeout 60s
+				write_timeout 60s
+			}
+		}
+	}
+
+	# SPA + /api (nginx in frontend container) — long timeouts for Ollama CPU
+	handle {
+		reverse_proxy frontend:80 {
+			header_up X-Real-IP {remote_host}
+			transport http {
+				read_timeout 360s
+				write_timeout 360s
+			}
+		}
+	}
+}

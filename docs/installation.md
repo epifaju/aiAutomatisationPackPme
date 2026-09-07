@@ -74,5 +74,6 @@ Smoke n8n + Ollama : `scripts/smoke-n8n-ollama.ps1`.
 ## Suite
 
 - Configuration : [configuration.md](configuration.md)
+- Reverse proxy (optionnel) : [proxy.md](proxy.md)
 - Sauvegarde : [configuration.md](configuration.md#sauvegarde--restauration) et `scripts/backup.*`
 - Dépannage : [troubleshooting.md](troubleshooting.md)

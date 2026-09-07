@@ -5,12 +5,13 @@
 Pack self-hosted pour TPE/PME : orchestration Docker Compose, automatisations n8n, IA locale Ollama, API Spring Boot, UI React, PostgreSQL (+ pgvector), MinIO, Mailpit, Redis.
 
 ```text
-Navigateur → frontend (Nginx) → /api → backend (Spring Boot)
+Navigateur → [Caddy optionnel] → frontend (Nginx) → /api → backend (Spring Boot)
                                     ↘ PostgreSQL (aipack)
-n8n ←→ PostgreSQL (n8n) + webhooks backend
+    n8n ←→ PostgreSQL (n8n) + webhooks backend
 backend ←→ Ollama (IA) · MinIO (fichiers) · Redis (cache) · SMTP (Mailpit)
 ```
 
+Entrée unique optionnelle : profile Compose `proxy` (Caddy) — [proxy.md](proxy.md).
 ## Services Compose
 
 | Service | Rôle |
@@ -24,6 +25,7 @@ backend ←→ Ollama (IA) · MinIO (fichiers) · Redis (cache) · SMTP (Mailpit
 | `minio` / `minio-init` | Stockage objet documents |
 | `mailpit` | SMTP de test |
 | `redis` | Cache AI (fail-open) |
+| `reverse-proxy` | Caddy (profile `proxy`, off par défaut) |
 
 ## Backend
 

@@ -67,6 +67,9 @@ cp docker-compose.yml "$OUT/docker-compose.yml"
 if [[ -f docker-compose.dev.yml ]]; then
   cp docker-compose.dev.yml "$OUT/docker-compose.dev.yml"
 fi
+if [[ -d proxy ]]; then
+  cp -a proxy "$OUT/proxy"
+fi
 
 if [[ "${INCLUDE_ENV:-0}" == "1" ]]; then
   if [[ -f .env ]]; then

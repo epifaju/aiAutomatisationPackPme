@@ -91,6 +91,9 @@ Copy-Item "docker-compose.yml" (Join-Path $Out "docker-compose.yml")
 if (Test-Path "docker-compose.dev.yml") {
   Copy-Item "docker-compose.dev.yml" (Join-Path $Out "docker-compose.dev.yml")
 }
+if (Test-Path "proxy") {
+  Copy-Item "proxy" (Join-Path $Out "proxy") -Recurse -Force
+}
 
 if ($IncludeEnv -and (Test-Path ".env")) {
   Copy-Item ".env" (Join-Path $Out "env.secrets")
