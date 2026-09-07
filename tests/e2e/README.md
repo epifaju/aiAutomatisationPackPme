@@ -47,4 +47,4 @@ Si le frontend Vite loggue des `ECONNRESET` vers le backend, redémarrer Vite (`
 | `a-lead.spec.ts` | A | Webhook lead + qualify → UI Leads + audit |
 | `b-email.spec.ts` | B | Webhook email + analyze → Inbox Approuver → Envoyer → Mailpit + audit |
 | `c-invoice.spec.ts` | C | Facture en retard → détecter → Approuver/Envoyer → Mailpit + audit |
-| `d-document.spec.ts` | D | Upload document → extraction → (Approuver si revue) |
+| `d-document.spec.ts` | D | Upload texte (+ Traiter) / Approuver si revue ; PDF texte minimal |

@@ -145,21 +145,26 @@ export function DocumentsPage() {
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button
                   variant="outline"
-                  disabled={upload.isPending || act.isPending}
+                  disabled={
+                    upload.isPending ||
+                    act.isPending ||
+                    doc.status === "PROCESSING" ||
+                    doc.status === "EXTRACTED"
+                  }
                   onClick={() => act.mutate({ id: doc.id, action: "process" })}
                 >
                   {thisProcessing ? "Traitement…" : "Traiter"}
                 </Button>
                 <Button
                   variant="outline"
-                  disabled={upload.isPending || act.isPending}
+                  disabled={upload.isPending || act.isPending || doc.status !== "REVIEW_REQUIRED"}
                   onClick={() => act.mutate({ id: doc.id, action: "approve" })}
                 >
                   {thisApproving ? "Approbation…" : "Approuver"}
                 </Button>
                 <Button
                   variant="ghost"
-                  disabled={upload.isPending || act.isPending}
+                  disabled={upload.isPending || act.isPending || doc.status !== "REVIEW_REQUIRED"}
                   onClick={() => act.mutate({ id: doc.id, action: "reject" })}
                 >
                   {thisRejecting ? "Rejet…" : "Rejeter"}

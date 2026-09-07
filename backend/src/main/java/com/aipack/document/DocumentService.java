@@ -58,6 +58,7 @@ public class DocumentService {
     private final AiGateway aiGateway;
     private final PromptCatalog promptCatalog;
     private final DocumentExtractionParser extractionParser;
+    private final DocumentHeuristicExtractor heuristicExtractor;
     private final DocumentProperties documentProperties;
 
     public DocumentService(
@@ -74,6 +75,7 @@ public class DocumentService {
             AiGateway aiGateway,
             PromptCatalog promptCatalog,
             DocumentExtractionParser extractionParser,
+            DocumentHeuristicExtractor heuristicExtractor,
             DocumentProperties documentProperties) {
         this.documentRepository = documentRepository;
         this.extractionRepository = extractionRepository;
@@ -88,6 +90,7 @@ public class DocumentService {
         this.aiGateway = aiGateway;
         this.promptCatalog = promptCatalog;
         this.extractionParser = extractionParser;
+        this.heuristicExtractor = heuristicExtractor;
         this.documentProperties = documentProperties;
     }
 
@@ -199,6 +202,18 @@ public class DocumentService {
         AIResponse aiResponse =
                 aiGateway.generate(new AIRequest(companyId, "document-extraction", promptCatalog.documentExtraction(variables)));
         if (!aiResponse.isSuccess()) {
+            DocumentExtractionParser.ParsedExtraction fallback =
+                    heuristicExtractor.tryExtract(extractedText, document.getDocumentType());
+            if (fallback != null) {
+                return persistExtraction(
+                        document,
+                        settings,
+                        extractedText,
+                        fallback.json(),
+                        fallback.confidenceScore(),
+                        DocumentExtractionStatus.REVIEW_REQUIRED,
+                        fallback.documentType());
+            }
             return persistExtraction(
                     document,
                     settings,
@@ -212,21 +227,33 @@ public class DocumentService {
         try {
             parsed = extractionParser.parse(aiResponse.text());
         } catch (AiParsingException ex) {
-            Map<String, Object> err = new LinkedHashMap<>();
-            err.put("reason", "AI_PARSING_ERROR");
-            err.put("message", ex.getMessage());
-            String raw = aiResponse.text();
-            if (raw != null && !raw.isBlank()) {
-                err.put("rawPreview", raw.length() > 500 ? raw.substring(0, 500) : raw);
+            parsed = heuristicExtractor.tryExtract(extractedText, document.getDocumentType());
+            if (parsed == null) {
+                Map<String, Object> err = new LinkedHashMap<>();
+                err.put("reason", "AI_PARSING_ERROR");
+                err.put("message", ex.getMessage());
+                String raw = aiResponse.text();
+                if (raw != null && !raw.isBlank()) {
+                    err.put("rawPreview", raw.length() > 500 ? raw.substring(0, 500) : raw);
+                }
+                return persistExtraction(
+                        document,
+                        settings,
+                        extractedText,
+                        err,
+                        null,
+                        DocumentExtractionStatus.AI_PARSING_ERROR,
+                        document.getDocumentType());
             }
+            // Repli déterministe → toujours revue humaine
             return persistExtraction(
                     document,
                     settings,
                     extractedText,
-                    err,
-                    null,
-                    DocumentExtractionStatus.AI_PARSING_ERROR,
-                    document.getDocumentType());
+                    parsed.json(),
+                    parsed.confidenceScore(),
+                    DocumentExtractionStatus.REVIEW_REQUIRED,
+                    parsed.documentType());
         }
         return persistExtraction(
                 document,
