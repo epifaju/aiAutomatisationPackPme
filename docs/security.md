@@ -12,7 +12,7 @@
 8. **Rate limiting (Bucket4j)** — limites in-memory par IP sur `POST /api/v1/auth/login|refresh` et `POST /webhook/**` (429 + `Retry-After`). Réglages : `RATE_LIMIT_*` / `app.rate-limit.*`. Derrière un reverse proxy, activer `RATE_LIMIT_TRUST_FORWARDED_HEADERS=true` seulement si le proxy est de confiance.
 9. **ClamAV (optionnel)** — scan antivirus des documents et pièces jointes email avant MinIO. Profile Compose `clamav` + `CLAMAV_ENABLED=true`. Malware → `422 MALWARE_DETECTED`. Si clamd down : `CLAMAV_FAIL_OPEN=true` (défaut) laisse passer avec un warning ; `false` → `503 VIRUS_SCAN_UNAVAILABLE`.
 10. **Audit** — journal append-only ; métadonnées filtrées (pas de mots de passe / tokens).
-11. **n8n** — `N8N_ENCRYPTION_KEY` stable ; dossier `n8n/credentials/` non versionné.
+11. **n8n (P0.4)** — `N8N_BLOCK_ENV_ACCESS_IN_NODE=true` (pas d’accès env depuis Code/expressions) ; secret webhook via credential `AIPACK Backend Webhook` (`httpHeaderAuth`) ; compte **owner** bootstrapé par `n8n-init` (`N8N_OWNER_*`) ; `N8N_ENCRYPTION_KEY` stable ; dossier `n8n/credentials/` non versionné.
 12. **Backups** — `.env` exclu par défaut ; `INCLUDE_ENV=1` / `-IncludeEnv` uniquement si l’archive est chiffrée / stockée de façon sûre. Postgres + `n8n_data` + `minio_data` (documents) sont inclus.
 
 ## Activer ClamAV
@@ -32,7 +32,9 @@ Premier démarrage : téléchargement des signatures (souvent 1–3 min). Health
 ## Checklist avant production
 
 - [ ] Définir `APP_ENV=production` **après** avoir remplacé tous les placeholders (sinon le backend ne démarre pas)
-- [ ] Changer `POSTGRES_PASSWORD`, `JWT_SECRET`, `WEBHOOK_SECRET`, `REDIS_PASSWORD`, `N8N_ENCRYPTION_KEY`, `MINIO_*`
+- [ ] Changer `POSTGRES_PASSWORD`, `JWT_SECRET`, `WEBHOOK_SECRET`, `REDIS_PASSWORD`, `N8N_ENCRYPTION_KEY`, `N8N_OWNER_PASSWORD`, `MINIO_*`
+- [ ] Créer / vérifier le compte owner n8n (ou laisser `n8n-init` le bootstrapper via `N8N_OWNER_*`)
+- [ ] Confirmer `N8N_BLOCK_ENV_ACCESS_IN_NODE=true` et credential webhook importé
 - [ ] Seed démo off (automatique si `APP_ENV=production` ; ou `DEMO_SEED_ENABLED=false`) — le compte `demo.admin@…` est désactivé s’il existe encore
 - [ ] Désactiver ou supprimer le compte démo
 - [ ] Exposer uniquement via reverse proxy HTTPS (Caddy profile `proxy` — [proxy.md](proxy.md))

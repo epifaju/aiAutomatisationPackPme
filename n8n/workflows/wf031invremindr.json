@@ -1,13 +1,14 @@
 {
   "id": "wf031invremindr",
   "name": "[AIPACK][INVOICE] Reminder",
-  "description": "On-demand overdue detection / reminder generation. J+30 stays manual; auto-send off by default. · v1.0.0",
+  "description": "On-demand overdue detection / reminder generation. J+30 stays manual; auto-send off by default. · v1.1.0",
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
         "path": "aipack/invoices/reminder",
         "responseMode": "lastNode",
+        "authentication": "headerAuth",
         "options": {}
       },
       "id": "wf031invremindr-hook",
@@ -18,11 +19,17 @@
         240,
         300
       ],
-      "webhookId": "wf031invremindr-hook"
+      "webhookId": "wf031invremindr-hook",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aipack-webhook-header",
+          "name": "AIPACK Backend Webhook"
+        }
+      }
     },
     {
       "parameters": {
-        "jsCode": "const item = $input.first().json;\nconst headers = item.headers || {};\nconst provided = headers['x-webhook-secret'] || headers['X-Webhook-Secret'];\nconst expected = (typeof $env !== 'undefined' && $env.WEBHOOK_SECRET) || process.env.WEBHOOK_SECRET;\nif (!expected || provided !== expected) {\n  throw new Error('Unauthorized webhook');\n}\nconst body = item.body && typeof item.body === 'object' ? item.body : item;\nconst companyId = body.companyId || (typeof $env !== 'undefined' && $env.DEMO_COMPANY_ID) || 'aaaaaaaa-0000-4000-8000-000000000001';\nconst payload = { ...body, companyId, send: false };\nreturn [{ json: payload }];"
+        "jsCode": "const item = $input.first().json;\nconst body = item.body && typeof item.body === 'object' ? item.body : item;\nconst companyId = body.companyId || 'aaaaaaaa-0000-4000-8000-000000000001';\nconst payload = { ...body, companyId, send: false };\nreturn [{ json: payload }];"
       },
       "id": "wf031invremindr-code",
       "name": "Prepare payload",
@@ -36,14 +43,12 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.BACKEND_BASE_URL }}/webhook/invoices/reminder",
+        "url": "http://backend:8080/webhook/invoices/reminder",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "X-Webhook-Secret",
-              "value": "={{ $env.WEBHOOK_SECRET }}"
-            },
             {
               "name": "Content-Type",
               "value": "application/json"
@@ -67,7 +72,13 @@
       ],
       "retryOnFail": true,
       "maxTries": 2,
-      "waitBetweenTries": 2000
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aipack-webhook-header",
+          "name": "AIPACK Backend Webhook"
+        }
+      }
     }
   ],
   "connections": {
@@ -105,6 +116,6 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "wf031invremindr-v1.0.0",
+  "versionId": "wf031invremindr-v1.1.0",
   "active": false
 }

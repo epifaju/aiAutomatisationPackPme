@@ -1,5 +1,7 @@
 /**
- * Generates n8n 1.107 workflow JSON (no credentials).
+ * Generates n8n 1.107 workflow JSON.
+ * Secrets live in the imported credential "AIPACK Backend Webhook" (httpHeaderAuth),
+ * not in $env — requires N8N_BLOCK_ENV_ACCESS_IN_NODE=true (P0.4).
  * Run: node n8n/build-workflows.mjs
  */
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -11,6 +13,11 @@ mkdirSync(outDir, { recursive: true });
 
 const ERROR_WF = "wf091errorhandl";
 const DEMO_COMPANY = "aaaaaaaa-0000-4000-8000-000000000001";
+const BACKEND_BASE_URL = "http://backend:8080";
+const WEBHOOK_CREDENTIAL = {
+  id: "aipack-webhook-header",
+  name: "AIPACK Backend Webhook",
+};
 
 function settings(errorWorkflow = ERROR_WF) {
   return {
@@ -27,6 +34,7 @@ function webhookNode(id, path) {
       httpMethod: "POST",
       path,
       responseMode: "lastNode",
+      authentication: "headerAuth",
       options: {},
     },
     id,
@@ -35,6 +43,9 @@ function webhookNode(id, path) {
     typeVersion: 2.1,
     position: [240, 300],
     webhookId: id,
+    credentials: {
+      httpHeaderAuth: { ...WEBHOOK_CREDENTIAL },
+    },
   };
 }
 
@@ -68,13 +79,12 @@ function httpNode(id, backendPath, timeout = 120000) {
   return {
     parameters: {
       method: "POST",
-      url: `={{ $env.BACKEND_BASE_URL }}/${backendPath.replace(/^\//, "")}`,
+      url: `${BACKEND_BASE_URL}/${backendPath.replace(/^\//, "")}`,
+      authentication: "genericCredentialType",
+      genericAuthType: "httpHeaderAuth",
       sendHeaders: true,
       headerParameters: {
-        parameters: [
-          { name: "X-Webhook-Secret", value: "={{ $env.WEBHOOK_SECRET }}" },
-          { name: "Content-Type", value: "application/json" },
-        ],
+        parameters: [{ name: "Content-Type", value: "application/json" }],
       },
       sendBody: true,
       specifyBody: "json",
@@ -89,6 +99,9 @@ function httpNode(id, backendPath, timeout = 120000) {
     retryOnFail: true,
     maxTries: 2,
     waitBetweenTries: 2000,
+    credentials: {
+      httpHeaderAuth: { ...WEBHOOK_CREDENTIAL },
+    },
   };
 }
 
@@ -96,22 +109,16 @@ function connect(from, to) {
   return { [from]: { main: [[{ node: to, type: "main", index: 0 }]] } };
 }
 
-function assertSecretAndBody(extraAssignments) {
+function prepareWebhookBody(extraAssignments) {
   return `const item = $input.first().json;
-const headers = item.headers || {};
-const provided = headers['x-webhook-secret'] || headers['X-Webhook-Secret'];
-const expected = (typeof $env !== 'undefined' && $env.WEBHOOK_SECRET) || process.env.WEBHOOK_SECRET;
-if (!expected || provided !== expected) {
-  throw new Error('Unauthorized webhook');
-}
 const body = item.body && typeof item.body === 'object' ? item.body : item;
-const companyId = body.companyId || (typeof $env !== 'undefined' && $env.DEMO_COMPANY_ID) || '${DEMO_COMPANY}';
+const companyId = body.companyId || '${DEMO_COMPANY}';
 const payload = { ...body, companyId${extraAssignments} };
 return [{ json: payload }];`;
 }
 
 function scheduleBody(extraJs) {
-  return `const companyId = (typeof $env !== 'undefined' && $env.DEMO_COMPANY_ID) || '${DEMO_COMPANY}';
+  return `const companyId = '${DEMO_COMPANY}';
 return [{ json: { companyId${extraJs} } }];`;
 }
 
@@ -122,7 +129,7 @@ function webhookWorkflow({ id, name, description, version, path, backendPath, ex
     description: `${description} · v${version}`,
     nodes: [
       webhookNode(`${id}-hook`, path),
-      codeNode(`${id}-code`, assertSecretAndBody(extraAssignments)),
+      codeNode(`${id}-code`, prepareWebhookBody(extraAssignments)),
       httpNode(`${id}-http`, backendPath, timeout),
     ],
     connections: { ...connect("Webhook", "Prepare payload"), ...connect("Prepare payload", "Backend") },
@@ -158,7 +165,7 @@ const workflows = [
     id: "wf001emailingst",
     name: "[AIPACK][EMAIL] Ingestion",
     description: "Ingests an inbound email without calling the LLM (analyze=false).",
-    version: "1.0.0",
+    version: "1.1.0",
     path: "aipack/email/incoming",
     backendPath: "webhook/email/incoming",
     extraAssignments: ", analyze: false",
@@ -168,7 +175,7 @@ const workflows = [
     id: "wf002emailanlys",
     name: "[AIPACK][EMAIL] Analyse Email",
     description: "Ingests or re-analyzes an email with Ollama classification (analyze=true).",
-    version: "1.0.0",
+    version: "1.1.0",
     path: "aipack/email/analyze",
     backendPath: "webhook/email/incoming",
     extraAssignments: ", analyze: true",
@@ -179,7 +186,7 @@ const workflows = [
     name: "[AIPACK][EMAIL] Reply generation",
     description:
       "Produces a suggested reply via backend analyze. Never auto-sends (AI_GENERATED_EMAIL_AUTO_SEND=false).",
-    version: "1.0.0",
+    version: "1.1.0",
     path: "aipack/email/reply",
     backendPath: "webhook/email/incoming",
     extraAssignments: ", analyze: true",
@@ -189,7 +196,7 @@ const workflows = [
     id: "wf010leadcaptur",
     name: "[AIPACK][LEAD] Capture",
     description: "Captures a lead from a form/webhook without qualification (qualify=false).",
-    version: "1.0.0",
+    version: "1.1.0",
     path: "aipack/leads/create",
     backendPath: "webhook/leads/create",
     extraAssignments: ", qualify: false",
@@ -199,7 +206,7 @@ const workflows = [
     id: "wf011leadqualif",
     name: "[AIPACK][LEAD] Qualification",
     description: "Creates a lead and runs Ollama qualification (qualify=true).",
-    version: "1.0.0",
+    version: "1.1.0",
     path: "aipack/leads/qualify",
     backendPath: "webhook/leads/create",
     extraAssignments: ", qualify: true",
@@ -209,7 +216,7 @@ const workflows = [
     id: "wf020docingesti",
     name: "[AIPACK][DOC] Ingestion",
     description: "Stores a document in MinIO without LLM extraction (process=false).",
-    version: "1.0.0",
+    version: "1.1.0",
     path: "aipack/documents/ingest",
     backendPath: "webhook/documents/process",
     extraAssignments: ", process: false",
@@ -219,7 +226,7 @@ const workflows = [
     id: "wf021docextract",
     name: "[AIPACK][DOC] Extraction",
     description: "Stores then extracts document fields with Tika + Ollama (process=true).",
-    version: "1.0.0",
+    version: "1.1.0",
     path: "aipack/documents/process",
     backendPath: "webhook/documents/process",
     extraAssignments: ", process: true",
@@ -229,7 +236,7 @@ const workflows = [
     id: "wf030invoverdue",
     name: "[AIPACK][INVOICE] Overdue detection",
     description: "Daily 08:00 Europe/Paris overdue detection (idempotent on invoice + reminder level).",
-    version: "1.0.0",
+    version: "1.1.0",
     hour: 8,
     minute: 0,
     backendPath: "webhook/invoices/reminder",
@@ -240,7 +247,7 @@ const workflows = [
     id: "wf031invremindr",
     name: "[AIPACK][INVOICE] Reminder",
     description: "On-demand overdue detection / reminder generation. J+30 stays manual; auto-send off by default.",
-    version: "1.0.0",
+    version: "1.1.0",
     path: "aipack/invoices/reminder",
     backendPath: "webhook/invoices/reminder",
     extraAssignments: ", send: false",
@@ -250,7 +257,7 @@ const workflows = [
     id: "wf040dailyrepor",
     name: "[AIPACK][REPORT] Daily Report",
     description: "Daily 07:30 Europe/Paris report generation. Email send stays opt-in.",
-    version: "1.0.0",
+    version: "1.1.0",
     hour: 7,
     minute: 30,
     backendPath: "webhook/reports/daily",
@@ -262,18 +269,12 @@ const workflows = [
 const auditLogger = {
   id: "wf090auditloggr",
   name: "[AIPACK][AUDIT] Logger",
-  description: "Normalizes n8n execution metadata. Secrets are stripped. Backend audit remains source of truth. · v1.0.0",
+  description: "Normalizes n8n execution metadata. Secrets are stripped. Backend audit remains source of truth. · v1.1.0",
   nodes: [
     webhookNode("wf090auditloggr-hook", "aipack/audit"),
     {
       parameters: {
         jsCode: `const item = $input.first().json;
-const headers = item.headers || {};
-const provided = headers['x-webhook-secret'] || headers['X-Webhook-Secret'];
-const expected = (typeof $env !== 'undefined' && $env.WEBHOOK_SECRET) || process.env.WEBHOOK_SECRET;
-if (!expected || provided !== expected) {
-  throw new Error('Unauthorized webhook');
-}
 const body = item.body && typeof item.body === 'object' ? item.body : item;
 const redact = (value) => {
   if (value && typeof value === 'object') {
@@ -310,7 +311,7 @@ return [{ json: {
   staticData: null,
   meta: { templateCredsSetupCompleted: true },
   pinData: {},
-  versionId: "wf090auditloggr-v1.0.0",
+  versionId: "wf090auditloggr-v1.1.0",
 };
 
 // Keep inactive: Error Trigger is not activatable as a normal workflow start node.
@@ -319,7 +320,7 @@ const errorHandler = {
   id: ERROR_WF,
   name: "[AIPACK][ERROR] Handler",
   description:
-    "Error workflow (keep inactive). Sanitizes failed execution payloads and posts ERROR to backend audit. Invoked via settings.errorWorkflow. · v1.1.0",
+    "Error workflow (keep inactive). Sanitizes failed execution payloads and posts ERROR to backend audit. Invoked via settings.errorWorkflow. · v1.2.0",
   nodes: [
     {
       parameters: {},
@@ -332,7 +333,7 @@ const errorHandler = {
     {
       parameters: {
         jsCode: `const item = $input.first().json;
-const companyId = (typeof $env !== 'undefined' && $env.DEMO_COMPANY_ID) || '${DEMO_COMPANY}';
+const companyId = '${DEMO_COMPANY}';
 const redact = (value) => {
   if (value && typeof value === 'object') {
     const out = Array.isArray(value) ? [] : {};
@@ -379,7 +380,7 @@ return [{ json: {
   staticData: null,
   meta: { templateCredsSetupCompleted: true },
   pinData: {},
-  versionId: `${ERROR_WF}-v1.1.0`,
+  versionId: `${ERROR_WF}-v1.2.0`,
 };
 
 for (const workflow of [...workflows, auditLogger, errorHandler]) {

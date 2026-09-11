@@ -46,13 +46,19 @@ docker compose restart n8n
 | --- | --- |
 | UI | http://localhost:5173 |
 | Backend / Swagger | http://localhost:8080/swagger-ui.html |
-| n8n | http://localhost:5678 |
+| n8n | http://localhost:5678 (login owner `N8N_OWNER_*`) |
 | Mailpit | http://localhost:8025 |
 
-Compte démo (développement uniquement) :
+Compte démo app (développement uniquement, seed hors prod) :
 
 ```text
 demo.admin@aipack.example / DemoAdmin!2026
+```
+
+Compte n8n (défaut `.env.example`, à changer) :
+
+```text
+n8n.owner@aipack.example / change-me-n8n-owner-password
 ```
 
 ## Collision de ports

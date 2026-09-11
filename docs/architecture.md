@@ -19,8 +19,8 @@ Entrée unique optionnelle : profile Compose `proxy` (Caddy) — [proxy.md](prox
 | `postgres` | Bases `aipack` (métier) et `n8n` |
 | `backend` | API REST, JWT, modules M01–M06, Flyway |
 | `frontend` | SPA React + reverse proxy `/api` |
-| `n8n` | Workflows (emails, leads, docs, factures, rapports, audit) |
-| `n8n-init` | Import one-shot des JSON `n8n/workflows/` |
+| `n8n` | Workflows (auth owner + BLOCK_ENV) |
+| `n8n-init` | Owner bootstrap + credential webhook + import JSON |
 | `ollama` / `ollama-init` | Inférence locale + pull modèle |
 | `minio` / `minio-init` | Stockage objet documents + pièces jointes email |
 | `backend` | API Spring Boot ; OCR Tesseract (fra+eng) pour scans PDF/PNG/JPEG |

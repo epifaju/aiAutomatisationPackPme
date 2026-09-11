@@ -23,7 +23,11 @@ $env:BACKEND_PORT="18080"
 .\scripts\smoke-n8n-ollama.ps1
 ```
 
-Les workflows lisent `WEBHOOK_SECRET`, `BACKEND_BASE_URL` (`http://backend:8080`) et `DEMO_COMPANY_ID` depuis l’environnement n8n (`N8N_BLOCK_ENV_ACCESS_IN_NODE=false`). Aucun secret dans les JSON.
+Les workflows **n’accèdent plus** à `$env` / `process.env` (`N8N_BLOCK_ENV_ACCESS_IN_NODE=true`, P0.4).
+Le secret `WEBHOOK_SECRET` est importé en credential n8n **`AIPACK Backend Webhook`** (`httpHeaderAuth`) par `n8n-init`.
+L’URL backend est figée à `http://backend:8080` (réseau Compose). Aucun secret dans les JSON.
+
+Au premier `n8n-init`, un compte **owner** est créé si besoin (`N8N_OWNER_EMAIL` / `N8N_OWNER_PASSWORD`). Login UI n8n obligatoire ensuite.
 
 Webhooks n8n (header `X-Webhook-Secret` obligatoire) :
 
@@ -109,6 +113,6 @@ POST /api/v1/reports/daily/{id}/send
 
 Le rapport quotidien passe par SMTP (`SMTP_HOST`, Mailpit en développement). Il n’est pas auto-envoyé tant que `DAILY_REPORT_AUTO_SEND=false`.
 
-Le secret est `WEBHOOK_SECRET` (voir `.env.example`). Aucun credential dans les JSON exportés.
+Le secret est `WEBHOOK_SECRET` (voir `.env.example`), stocké chiffré dans le credential n8n (pas dans les JSON). Owner : `N8N_OWNER_*`.
 
 n8n persiste dans PostgreSQL (base `n8n` sur le même instance que l’application).

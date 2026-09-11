@@ -1,7 +1,7 @@
 {
   "id": "wf030invoverdue",
   "name": "[AIPACK][INVOICE] Overdue detection",
-  "description": "Daily 08:00 Europe/Paris overdue detection (idempotent on invoice + reminder level). · v1.0.0",
+  "description": "Daily 08:00 Europe/Paris overdue detection (idempotent on invoice + reminder level). · v1.1.0",
   "nodes": [
     {
       "parameters": {
@@ -27,7 +27,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const companyId = (typeof $env !== 'undefined' && $env.DEMO_COMPANY_ID) || 'aaaaaaaa-0000-4000-8000-000000000001';\nreturn [{ json: { companyId, send: false } }];"
+        "jsCode": "const companyId = 'aaaaaaaa-0000-4000-8000-000000000001';\nreturn [{ json: { companyId, send: false } }];"
       },
       "id": "wf030invoverdue-code",
       "name": "Prepare payload",
@@ -41,14 +41,12 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.BACKEND_BASE_URL }}/webhook/invoices/reminder",
+        "url": "http://backend:8080/webhook/invoices/reminder",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {
-              "name": "X-Webhook-Secret",
-              "value": "={{ $env.WEBHOOK_SECRET }}"
-            },
             {
               "name": "Content-Type",
               "value": "application/json"
@@ -72,7 +70,13 @@
       ],
       "retryOnFail": true,
       "maxTries": 2,
-      "waitBetweenTries": 2000
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aipack-webhook-header",
+          "name": "AIPACK Backend Webhook"
+        }
+      }
     }
   ],
   "connections": {
@@ -110,6 +114,6 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "wf030invoverdue-v1.0.0",
+  "versionId": "wf030invoverdue-v1.1.0",
   "active": false
 }

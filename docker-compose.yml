@@ -40,12 +40,10 @@ services:
       N8N_DIAGNOSTICS_ENABLED: "false"
       N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-change-me-n8n-encryption-key-32b}
       N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "false"
-      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false"
+      # P0.4 — pas d’accès $env / process.env depuis Code nodes / expressions
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "true"
       N8N_RUNNERS_ENABLED: "true"
       WEBHOOK_URL: ${N8N_WEBHOOK_URL:-http://localhost:5678/}
-      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-change-me-webhook-secret-min-16-chars}
-      BACKEND_BASE_URL: http://backend:8080
-      DEMO_COMPANY_ID: ${DEMO_COMPANY_ID:-aaaaaaaa-0000-4000-8000-000000000001}
       DB_TYPE: postgresdb
       DB_POSTGRESDB_HOST: postgres
       DB_POSTGRESDB_PORT: "5432"
@@ -297,6 +295,13 @@ services:
     environment:
       N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-change-me-n8n-encryption-key-32b}
       N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "false"
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "true"
+      N8N_INTERNAL_URL: http://n8n:5678
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-change-me-webhook-secret-min-16-chars}
+      N8N_OWNER_EMAIL: ${N8N_OWNER_EMAIL:-n8n.owner@aipack.example}
+      N8N_OWNER_PASSWORD: ${N8N_OWNER_PASSWORD:-change-me-n8n-owner-password}
+      N8N_OWNER_FIRST_NAME: ${N8N_OWNER_FIRST_NAME:-Owner}
+      N8N_OWNER_LAST_NAME: ${N8N_OWNER_LAST_NAME:-AIPACK}
       DB_TYPE: postgresdb
       DB_POSTGRESDB_HOST: postgres
       DB_POSTGRESDB_PORT: "5432"

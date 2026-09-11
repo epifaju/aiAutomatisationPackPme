@@ -1,13 +1,14 @@
 {
   "id": "wf090auditloggr",
   "name": "[AIPACK][AUDIT] Logger",
-  "description": "Normalizes n8n execution metadata. Secrets are stripped. Backend audit remains source of truth. · v1.0.0",
+  "description": "Normalizes n8n execution metadata. Secrets are stripped. Backend audit remains source of truth. · v1.1.0",
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
         "path": "aipack/audit",
         "responseMode": "lastNode",
+        "authentication": "headerAuth",
         "options": {}
       },
       "id": "wf090auditloggr-hook",
@@ -18,11 +19,17 @@
         240,
         300
       ],
-      "webhookId": "wf090auditloggr-hook"
+      "webhookId": "wf090auditloggr-hook",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aipack-webhook-header",
+          "name": "AIPACK Backend Webhook"
+        }
+      }
     },
     {
       "parameters": {
-        "jsCode": "const item = $input.first().json;\nconst headers = item.headers || {};\nconst provided = headers['x-webhook-secret'] || headers['X-Webhook-Secret'];\nconst expected = (typeof $env !== 'undefined' && $env.WEBHOOK_SECRET) || process.env.WEBHOOK_SECRET;\nif (!expected || provided !== expected) {\n  throw new Error('Unauthorized webhook');\n}\nconst body = item.body && typeof item.body === 'object' ? item.body : item;\nconst redact = (value) => {\n  if (value && typeof value === 'object') {\n    const out = Array.isArray(value) ? [] : {};\n    for (const [key, nested] of Object.entries(value)) {\n      const lower = key.toLowerCase();\n      out[key] = ['password', 'secret', 'token', 'authorization'].some((part) => lower.includes(part))\n        ? '[redacted]'\n        : redact(nested);\n    }\n    return out;\n  }\n  return value;\n};\nreturn [{ json: {\n  workflow: body.workflow || 'n8n',\n  execution: body.execution || $execution.id,\n  status: body.status || 'SUCCESS',\n  error_type: body.error_type || null,\n  error_message: body.error_message || null,\n  timestamp: new Date().toISOString(),\n  metadata: redact(body.metadata || {}),\n} }];"
+        "jsCode": "const item = $input.first().json;\nconst body = item.body && typeof item.body === 'object' ? item.body : item;\nconst redact = (value) => {\n  if (value && typeof value === 'object') {\n    const out = Array.isArray(value) ? [] : {};\n    for (const [key, nested] of Object.entries(value)) {\n      const lower = key.toLowerCase();\n      out[key] = ['password', 'secret', 'token', 'authorization'].some((part) => lower.includes(part))\n        ? '[redacted]'\n        : redact(nested);\n    }\n    return out;\n  }\n  return value;\n};\nreturn [{ json: {\n  workflow: body.workflow || 'n8n',\n  execution: body.execution || $execution.id,\n  status: body.status || 'SUCCESS',\n  error_type: body.error_type || null,\n  error_message: body.error_message || null,\n  timestamp: new Date().toISOString(),\n  metadata: redact(body.metadata || {}),\n} }];"
       },
       "id": "wf090auditloggr-code",
       "name": "Sanitize audit",
@@ -58,6 +65,6 @@
     "templateCredsSetupCompleted": true
   },
   "pinData": {},
-  "versionId": "wf090auditloggr-v1.0.0",
+  "versionId": "wf090auditloggr-v1.1.0",
   "active": false
 }

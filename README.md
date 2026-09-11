@@ -151,7 +151,7 @@ $env:BACKEND_PORT="18080"
 | --- | --- | --- | --- |
 | `postgres` | PostgreSQL + pgvector | défaut | 1 |
 | `n8n` | Automatisation | défaut | 1 |
-| `n8n-init` | Import des workflows JSON | défaut (one-shot) | 1 |
+| `n8n-init` | Owner + credential webhook + import JSON | défaut (one-shot) | 1 |
 | `ollama` | IA locale | défaut | 1 |
 | `ollama-init` | `ollama pull` du modèle | défaut (one-shot) | 1 |
 | `mailpit` | SMTP / UI mails de test | défaut | 1 |
