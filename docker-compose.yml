@@ -169,13 +169,20 @@ services:
     image: redis:7.4-alpine
     container_name: aipack-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - ${REDIS_PASSWORD:-change-me-redis-password}
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-change-me-redis-password}
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_PASSWORD\" redis-cli ping | grep -q PONG"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -226,6 +233,7 @@ services:
       MINIO_BUCKET: ${MINIO_BUCKET:-aipack}
       REDIS_HOST: redis
       REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-change-me-redis-password}
       CLAMAV_ENABLED: ${CLAMAV_ENABLED:-false}
       CLAMAV_HOST: ${CLAMAV_HOST:-clamav}
       CLAMAV_PORT: ${CLAMAV_PORT:-3310}

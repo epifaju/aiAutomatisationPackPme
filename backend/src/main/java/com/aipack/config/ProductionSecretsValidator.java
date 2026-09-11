@@ -13,7 +13,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.stereotype.Component;
 
 /**
- * Refuse de démarrer en production si des secrets placeholder / trop faibles sont détectés (P0.1).
+ * Refuse de démarrer en production si des secrets placeholder / trop faibles sont détectés (P0.1 / P0.3).
  */
 @Component
 @EnableConfigurationProperties({JwtProperties.class, WebhookProperties.class, StorageProperties.class})
@@ -27,25 +27,29 @@ public class ProductionSecretsValidator {
             "aipack-dev-change-me",
             "minioadmin-change-me",
             "minioadmin",
-            "change-me-n8n-encryption-key-32b");
+            "change-me-n8n-encryption-key-32b",
+            "change-me-redis-password");
 
     private final String appEnv;
     private final JwtProperties jwtProperties;
     private final WebhookProperties webhookProperties;
     private final StorageProperties storageProperties;
     private final String datasourcePassword;
+    private final String redisPassword;
 
     public ProductionSecretsValidator(
             @Value("${app.env:development}") String appEnv,
             JwtProperties jwtProperties,
             WebhookProperties webhookProperties,
             StorageProperties storageProperties,
-            @Value("${spring.datasource.password:}") String datasourcePassword) {
+            @Value("${spring.datasource.password:}") String datasourcePassword,
+            @Value("${app.ai.cache.redis-password:}") String redisPassword) {
         this.appEnv = appEnv;
         this.jwtProperties = jwtProperties;
         this.webhookProperties = webhookProperties;
         this.storageProperties = storageProperties;
         this.datasourcePassword = datasourcePassword;
+        this.redisPassword = redisPassword;
     }
 
     @PostConstruct
@@ -57,6 +61,7 @@ public class ProductionSecretsValidator {
         checkSecret("JWT_SECRET (app.jwt.secret)", jwtProperties.secret(), 32, errors);
         checkSecret("WEBHOOK_SECRET (app.webhook.secret)", webhookProperties.secret(), 16, errors);
         checkSecret("POSTGRES_PASSWORD / spring.datasource.password", datasourcePassword, 12, errors);
+        checkSecret("REDIS_PASSWORD (app.ai.cache.redis-password)", redisPassword, 12, errors);
         if (!"memory".equalsIgnoreCase(storageProperties.providerOrDefault())) {
             checkSecret("MINIO_ACCESS_KEY (app.storage.access-key)", storageProperties.accessKey(), 3, errors);
             checkSecret("MINIO_SECRET_KEY (app.storage.secret-key)", storageProperties.secretKey(), 8, errors);
@@ -67,7 +72,7 @@ public class ProductionSecretsValidator {
                             + appEnv
                             + " avec secrets de développement ou trop faibles. "
                             + String.join(" ; ", errors)
-                            + ". Voir docs/security.md (P0.1).";
+                            + ". Voir docs/security.md (P0.1 / P0.3).";
             log.error(message);
             throw new IllegalStateException(message);
         }

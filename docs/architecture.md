@@ -26,7 +26,7 @@ Entrée unique optionnelle : profile Compose `proxy` (Caddy) — [proxy.md](prox
 | `backend` | API Spring Boot ; OCR Tesseract (fra+eng) pour scans PDF/PNG/JPEG |
 | `clamav` | Antivirus clamd (profile `clamav`, off par défaut) |
 | `mailpit` | SMTP de test |
-| `redis` | Cache AI (fail-open) |
+| `redis` | Cache AI authentifié (`REDIS_PASSWORD`, fail-open) |
 | `reverse-proxy` | Caddy (profile `proxy`, off par défaut) |
 
 ## Backend

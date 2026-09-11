@@ -12,6 +12,8 @@ import org.junit.jupiter.api.Test;
 
 class ProductionSecretsValidatorTest {
 
+    private static final String STRONG_REDIS = "redis-prod-password-9f3a";
+
     @Test
     void isProductionRecognizesProdAliases() {
         assertThat(ProductionSecretsValidator.isProduction("production")).isTrue();
@@ -27,7 +29,8 @@ class ProductionSecretsValidatorTest {
                 "JWT_SECRET", "change-me-jwt-secret-min-32-characters-long", 32, errors);
         ProductionSecretsValidator.checkSecret("WEBHOOK_SECRET", "short", 16, errors);
         ProductionSecretsValidator.checkSecret("MINIO_SECRET_KEY", "minioadmin-change-me", 8, errors);
-        assertThat(errors).hasSize(3);
+        ProductionSecretsValidator.checkSecret("REDIS_PASSWORD", "change-me-redis-password", 12, errors);
+        assertThat(errors).hasSize(4);
     }
 
     @Test
@@ -45,10 +48,26 @@ class ProductionSecretsValidatorTest {
                 new JwtProperties("change-me-jwt-secret-min-32-characters-long", Duration.ofMinutes(15), Duration.ofDays(7)),
                 new WebhookProperties("a-strong-webhook-secret-here"),
                 new StorageProperties("memory", "http://localhost:9000", "test", "test-secret", "bucket"),
-                "strong-db-password-ok");
+                "strong-db-password-ok",
+                STRONG_REDIS);
         assertThatThrownBy(validator::validate)
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("JWT_SECRET")
+                .hasMessageContaining("placeholder");
+    }
+
+    @Test
+    void productionBootFailsOnPlaceholderRedisPassword() {
+        ProductionSecretsValidator validator = new ProductionSecretsValidator(
+                "production",
+                new JwtProperties("prod-jwt-secret-with-enough-entropy-xyz-2026", Duration.ofMinutes(15), Duration.ofDays(7)),
+                new WebhookProperties("prod-webhook-secret-long-enough"),
+                new StorageProperties("memory", "http://localhost:9000", "test", "test-secret", "bucket"),
+                "postgres-prod-password-9f3a",
+                "change-me-redis-password");
+        assertThatThrownBy(validator::validate)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("REDIS_PASSWORD")
                 .hasMessageContaining("placeholder");
     }
 
@@ -59,7 +78,8 @@ class ProductionSecretsValidatorTest {
                 new JwtProperties("change-me-jwt-secret-min-32-characters-long", Duration.ofMinutes(15), Duration.ofDays(7)),
                 new WebhookProperties("change-me-webhook-secret-min-16-chars"),
                 new StorageProperties("minio", "http://localhost:9000", "minioadmin", "minioadmin-change-me", "aipack"),
-                "aipack-dev-change-me");
+                "aipack-dev-change-me",
+                "change-me-redis-password");
         assertThatCode(validator::validate).doesNotThrowAnyException();
     }
 
@@ -70,7 +90,8 @@ class ProductionSecretsValidatorTest {
                 new JwtProperties("prod-jwt-secret-with-enough-entropy-xyz-2026", Duration.ofMinutes(15), Duration.ofDays(7)),
                 new WebhookProperties("prod-webhook-secret-long-enough"),
                 new StorageProperties("minio", "http://minio:9000", "aipackprod", "minio-prod-secret-key-9f3a", "aipack"),
-                "postgres-prod-password-9f3a");
+                "postgres-prod-password-9f3a",
+                STRONG_REDIS);
         assertThatCode(validator::validate).doesNotThrowAnyException();
     }
 }

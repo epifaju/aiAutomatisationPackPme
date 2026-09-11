@@ -87,6 +87,6 @@ class AnthropicAIProviderTest {
                 new AiProperties.Ollama("http://localhost:11434", "llama3.2"),
                 new AiProperties.OpenAi("https://api.openai.com/v1", "", "gpt-4o-mini", true),
                 new AiProperties.Anthropic(baseUrl, apiKey, "claude-3-5-haiku-latest"),
-                new AiProperties.Cache(false, Duration.ofMinutes(1), "localhost", 6379));
+                new AiProperties.Cache(false, Duration.ofMinutes(1), "localhost", 6379, ""));
     }
 }

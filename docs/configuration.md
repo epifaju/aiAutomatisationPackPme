@@ -10,6 +10,7 @@ Copié depuis `.env.example`. **Ne jamais committer `.env`.**
 | Auth | `JWT_SECRET` | ≥ 32 caractères ; placeholders refusés si `APP_ENV=production` |
 | Webhooks | `WEBHOOK_SECRET` | Header `X-Webhook-Secret` ; idem fail-fast prod |
 | Application | `APP_ENV`, `DEMO_SEED_ENABLED` | `production` / `prod` → fail-fast secrets + seed démo off (voir [security.md](security.md)) |
+| Redis | `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` | `requirepass` ; fail-fast prod sur le mot de passe (P0.3) |
 | Rate limit | `RATE_LIMIT_*` | Bucket4j login/refresh + webhooks (voir [security.md](security.md)) |
 | Documents / OCR | `DOCUMENT_OCR_*` | Tesseract fra+eng dans l’image backend |
 | ClamAV | `CLAMAV_*` | Antivirus optionnel (profile Compose `clamav`) — [security.md](security.md) |

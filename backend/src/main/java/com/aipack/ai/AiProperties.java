@@ -19,7 +19,7 @@ public record AiProperties(
      */
     public record Anthropic(String baseUrl, String apiKey, String model) {}
 
-    public record Cache(boolean enabled, Duration ttl, String redisHost, int redisPort) {}
+    public record Cache(boolean enabled, Duration ttl, String redisHost, int redisPort, String redisPassword) {}
 
     public String normalizedProvider() {
         if (provider == null || provider.isBlank()) {

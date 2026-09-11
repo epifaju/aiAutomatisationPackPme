@@ -17,6 +17,7 @@ public class RedisAiResponseCache implements AiResponseCache {
 
     private final String host;
     private final int port;
+    private final String password;
     private final long ttlSeconds;
     private final AtomicBoolean disabled = new AtomicBoolean(false);
     private final Object lock = new Object();
@@ -25,9 +26,10 @@ public class RedisAiResponseCache implements AiResponseCache {
     private RedisClient client;
     private StatefulRedisConnection<String, String> connection;
 
-    public RedisAiResponseCache(String host, int port, Duration ttl) {
+    public RedisAiResponseCache(String host, int port, String password, Duration ttl) {
         this.host = host;
         this.port = port;
+        this.password = password == null ? "" : password;
         this.ttlSeconds = Math.max(1, ttl == null ? 3600 : ttl.toSeconds());
     }
 
@@ -81,11 +83,7 @@ public class RedisAiResponseCache implements AiResponseCache {
             }
             try {
                 closeQuietly();
-                RedisURI uri = RedisURI.builder()
-                        .withHost(host)
-                        .withPort(port)
-                        .withTimeout(Duration.ofMillis(250))
-                        .build();
+                RedisURI uri = buildUri(host, port, password);
                 client = RedisClient.create(uri);
                 client.setDefaultTimeout(Duration.ofMillis(250));
                 connection = client.connect();
@@ -97,6 +95,17 @@ public class RedisAiResponseCache implements AiResponseCache {
                 return null;
             }
         }
+    }
+
+    static RedisURI buildUri(String host, int port, String password) {
+        RedisURI.Builder builder = RedisURI.builder()
+                .withHost(host)
+                .withPort(port)
+                .withTimeout(Duration.ofMillis(250));
+        if (password != null && !password.isBlank()) {
+            builder.withPassword(password.toCharArray());
+        }
+        return builder.build();
     }
 
     private void disable(RuntimeException ex) {

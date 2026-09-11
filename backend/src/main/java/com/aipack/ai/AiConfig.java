@@ -16,7 +16,7 @@ public class AiConfig {
         if (cache == null || !cache.enabled()) {
             return new NoOpAiResponseCache();
         }
-        return new RedisAiResponseCache(cache.redisHost(), cache.redisPort(), cache.ttl());
+        return new RedisAiResponseCache(cache.redisHost(), cache.redisPort(), cache.redisPassword(), cache.ttl());
     }
 
     @Bean

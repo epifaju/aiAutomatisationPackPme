@@ -29,7 +29,7 @@ Le PRD `PRD___AI_Automation_Pack_for_TPE-PME_v1.1.md` est la source de vérité 
 | Frontend | React / TypeScript / Vite / Tailwind | build local `frontend/Dockerfile` |
 | Emails de test | Mailpit | `axllent/mailpit:v1.27.4` |
 | Stockage objet | MinIO | `minio/minio:RELEASE.2025-07-23T15-54-02Z` |
-| Cache | Redis (présent, non bloquant) | `redis:7.4-alpine` |
+| Cache | Redis (`requirepass`) | `redis:7.4-alpine` |
 
 La stack FastAPI n’est pas retenue.
 
@@ -129,7 +129,7 @@ Détails : `tests/e2e/README.md`.
 - Ollama : `GET /api/tags` · `ollama-init` tire `llama3.2`
 - MinIO : `GET /minio/health/live` + bucket `aipack`
 - Frontend : `GET /healthz` → `ok`
-- Redis : `PING`
+- Redis : `PING` (auth `REDIS_PASSWORD`)
 
 OpenAPI : `GET /v3/api-docs` · Swagger UI : `/swagger-ui.html`.
 
@@ -157,7 +157,7 @@ $env:BACKEND_PORT="18080"
 | `mailpit` | SMTP / UI mails de test | défaut | 1 |
 | `minio` | Stockage objet S3 | défaut | 1 |
 | `minio-init` | Création du bucket (one-shot) | défaut | 1 |
-| `redis` | Cache / files légères | défaut | 1 |
+| `redis` | Cache IA (auth `REDIS_PASSWORD`) | défaut | 1 |
 | `backend` | API Spring Boot | défaut | 2 |
 | `frontend` | Dashboard React | défaut | 11 |
 | `clamav` | Antivirus clamd | `clamav` (off) | V2 |

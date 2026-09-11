@@ -70,6 +70,7 @@ app:
       ttl: ${AI_CACHE_TTL:1h}
       redis-host: ${REDIS_HOST:localhost}
       redis-port: ${REDIS_PORT:6379}
+      redis-password: ${REDIS_PASSWORD:}
 
 spring:
   application:
