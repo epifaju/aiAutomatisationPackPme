@@ -63,7 +63,8 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up minio-init ol
 Compte démo app (développement uniquement, seed hors prod) :
 
 ```text
-demo.admin@aipack.example / DemoAdmin!2026
+demo.admin@aipack.example / DemoAdmin!2026   (ADMIN)
+demo.user@aipack.example / DemoUser!2026     (USER — pas d’écriture settings / auto-send)
 ```
 
 Compte n8n (défaut `.env.example`, à changer) :

@@ -21,7 +21,7 @@ export type PageResponse<T> = {
 
 export type TokenResponse = {
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string | null;
   tokenType: string;
   expiresIn: number;
 };
@@ -226,5 +226,10 @@ export type Settings = {
     confidenceThreshold: number | string;
   };
   documents: { confidenceThreshold: number | string };
-  security: { dataRetentionDays: number };
+  security: { dataRetentionDays: number; webhookSecretConfigured: boolean };
+};
+
+export type RotateWebhookSecretResponse = {
+  webhookSecret: string;
+  configured: boolean;
 };

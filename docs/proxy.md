@@ -6,7 +6,7 @@ Point d’entrée unique vers l’UI, `/api` et les webhooks publics.
 | --- | --- | --- | --- |
 | Développement (défaut) | `docker-compose.yml` | UI/API/n8n/Mailpit/… publiés | Accès direct pour démo et E2E |
 | Proxy local (optionnel) | + `--profile proxy` | `8088` / `8443` **en plus** | Inchangé |
-| **Production (P0.5)** | `docker-compose.yml` + `docker-compose.prod.yml` | **80 et 443 uniquement** | Postgres, Redis, MinIO, Ollama, n8n, Mailpit, backend, frontend **non publiés** |
+| **Production (P0.5)** | `docker-compose.yml` + `docker-compose.prod.yml` | **80 et 443 uniquement** | Postgres, Redis, MinIO, Ollama, n8n, Mailpit, backend, frontend, ClamAV **non publiés** |
 
 ## Production (TLS, surface minimale)
 
@@ -38,11 +38,11 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml restart n8n
 .\scripts\healthcheck.ps1 -Prod
 ```
 
-Let’s Encrypt est géré par Caddy (`PROXY_SITE` = hostname + `PROXY_ACME_EMAIL`). Les ports hôte **80** et **443** (TCP + UDP 443 pour HTTP/3) doivent être libres et ouverts.
+Let’s Encrypt est géré par Caddy (`PROXY_SITE` = hostname + `PROXY_ACME_EMAIL`). Les ports hôte **80** et **443** (TCP + UDP 443 pour HTTP/3) doivent être libres et ouverts. ClamAV démarre avec l’overlay (signatures au premier boot, souvent 1–3 min) — [security.md](security.md).
 
 Vérifier l’UI : `https://app.exemple.com/healthz` → `ok`.
 
-Les webhooks publics : `https://app.exemple.com/webhook/...` (header `X-Webhook-Secret`).
+Les webhooks publics : `https://app.exemple.com/webhook/...` (header `X-Webhook-Secret` **de l’entreprise**, pas un secret unique pour tout le serveur).
 
 ### Accès n8n / consoles (non publiés)
 

@@ -29,7 +29,7 @@ public class EmailWebhookController {
     public ResponseEntity<ApiResponse<EmailResponse>> incoming(
             @RequestHeader(value = SECRET_HEADER, required = false) String providedSecret,
             @Valid @RequestBody WebhookEmailRequest request) {
-        webhookAuthenticator.requireValidSecret(providedSecret);
+        webhookAuthenticator.requireCompany(providedSecret, request.companyId());
         boolean analyze = request.analyze() == null || request.analyze();
         EmailService.IngestResult result = emailService.ingestFromWebhook(request, analyze);
         HttpStatus status = result.created() ? HttpStatus.CREATED : HttpStatus.OK;

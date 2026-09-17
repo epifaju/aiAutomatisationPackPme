@@ -1,4 +1,5 @@
-# P0.5 — overlay production : aucun port interne publié ; entrée unique Caddy :80/:443.
+# P0.5 / P1.4 — overlay production : aucun port interne publié ; entrée unique Caddy :80/:443 ;
+# ClamAV toujours démarré, scan fail-closed.
 # Usage :
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --wait
 #   docker compose -f docker-compose.yml -f docker-compose.prod.yml up minio-init ollama-init n8n-init
@@ -29,11 +30,19 @@ services:
     ports: !override []
     environment:
       RATE_LIMIT_TRUST_FORWARDED_HEADERS: ${RATE_LIMIT_TRUST_FORWARDED_HEADERS:-true}
+      CLAMAV_ENABLED: ${CLAMAV_ENABLED:-true}
+      CLAMAV_FAIL_OPEN: ${CLAMAV_FAIL_OPEN:-false}
+    depends_on:
+      clamav:
+        condition: service_healthy
+        required: true
 
   frontend:
     ports: !override []
 
   clamav:
+    # Toujours démarré en overlay prod (plus de --profile clamav).
+    profiles: !reset []
     ports: !override []
 
   reverse-proxy:

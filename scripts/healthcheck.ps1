@@ -73,6 +73,7 @@ if ($Prod) {
       @("ollama", "aipack-ollama"),
       @("n8n", "aipack-n8n"),
       @("mailpit", "aipack-mailpit"),
+      @("clamav", "aipack-clamav"),
       @("backend", "aipack-backend"),
       @("frontend", "aipack-frontend"),
       @("caddy", "aipack-caddy")

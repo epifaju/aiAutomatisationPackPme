@@ -29,7 +29,7 @@ public class AuditWebhookController {
     public ResponseEntity<ApiResponse<AuditLogResponse>> n8nError(
             @RequestHeader(value = SECRET_HEADER, required = false) String providedSecret,
             @Valid @RequestBody WebhookN8nErrorRequest request) {
-        webhookAuthenticator.requireValidSecret(providedSecret);
+        webhookAuthenticator.requireCompany(providedSecret, request.companyId());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(auditService.recordN8nError(request)));
     }
 }

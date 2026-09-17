@@ -23,4 +23,8 @@ public class Company extends BaseEntity {
 
     @Column(nullable = false)
     private String timezone;
+
+    /** SHA-256 hex of the per-company webhook secret (never the plaintext). */
+    @Column(name = "webhook_secret_hash", length = 64)
+    private String webhookSecretHash;
 }

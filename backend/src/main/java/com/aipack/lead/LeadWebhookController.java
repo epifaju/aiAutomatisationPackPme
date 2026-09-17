@@ -29,7 +29,7 @@ public class LeadWebhookController {
     public ResponseEntity<ApiResponse<LeadResponse>> create(
             @RequestHeader(value = SECRET_HEADER, required = false) String providedSecret,
             @Valid @RequestBody WebhookLeadRequest request) {
-        webhookAuthenticator.requireValidSecret(providedSecret);
+        webhookAuthenticator.requireCompany(providedSecret, request.companyId());
         boolean qualify = request.qualify() == null || request.qualify();
         LeadResponse created = leadService.captureFromWebhook(request, qualify);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(created));

@@ -7,13 +7,13 @@ Copié depuis `.env.example`. **Ne jamais committer `.env`.**
 | Groupe | Variables clés | Notes |
 | --- | --- | --- |
 | Postgres | `POSTGRES_*` | Mot de passe à changer hors démo |
-| Auth | `JWT_SECRET` | ≥ 32 caractères ; placeholders refusés si `APP_ENV=production` |
-| Webhooks | `WEBHOOK_SECRET` | Header `X-Webhook-Secret` ; idem fail-fast prod |
+| Auth | `JWT_SECRET`, `JWT_COOKIE_*` | Secret ≥ 32 car. ; cookie refresh HttpOnly (`JWT_COOKIE_SECURE=auto` = Secure en prod) |
+| Webhooks | `WEBHOOK_SECRET` | Binding initial du tenant démo (hash) ; header `X-Webhook-Secret` **par entreprise** (P1.1) |
 | Application | `APP_ENV`, `DEMO_SEED_ENABLED` | `production` / `prod` → fail-fast secrets + seed démo off (voir [security.md](security.md)) |
 | Redis | `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` | `requirepass` ; fail-fast prod sur le mot de passe (P0.3) |
 | Rate limit | `RATE_LIMIT_*` | Bucket4j login/refresh + webhooks (voir [security.md](security.md)) |
 | Documents / OCR | `DOCUMENT_OCR_*` | Tesseract fra+eng dans l’image backend |
-| ClamAV | `CLAMAV_*` | Antivirus optionnel (profile Compose `clamav`) — [security.md](security.md) |
+| ClamAV | `CLAMAV_*` | Prod : on + fail-closed (overlay). Local : profile `clamav` — [security.md](security.md) |
 | Reverse proxy | `PROXY_*`, `PROXY_ACME_EMAIL` | Caddy local (`--profile proxy`) ou overlay prod 80/443 — [proxy.md](proxy.md) |
 | n8n | `N8N_ENCRYPTION_KEY`, `N8N_OWNER_*`, `N8N_PORT`, `N8N_WEBHOOK_URL` | Owner auth + `BLOCK_ENV` (P0.4) ; clé stable credentials |
 | IA | `AI_PROVIDER`, `OLLAMA_*`, `AI_OPENAI_*`, `AI_ANTHROPIC_*`, `AI_TIMEOUT` | `ollama` (défaut), `openai`, ou `anthropic` |

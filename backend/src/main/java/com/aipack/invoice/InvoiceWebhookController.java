@@ -28,7 +28,7 @@ public class InvoiceWebhookController {
     public ResponseEntity<ApiResponse<OverdueDetectionResponse>> reminder(
             @RequestHeader(value = SECRET_HEADER, required = false) String providedSecret,
             @Valid @RequestBody WebhookInvoiceReminderRequest request) {
-        webhookAuthenticator.requireValidSecret(providedSecret);
+        webhookAuthenticator.requireCompany(providedSecret, request.companyId());
         return ResponseEntity.ok(ApiResponse.ok(invoiceService.detectFromWebhook(request)));
     }
 }

@@ -12,6 +12,12 @@ app:
     secret: ${JWT_SECRET:change-me-jwt-secret-min-32-characters-long}
     access-token-ttl: 15m
     refresh-token-ttl: 7d
+    cookie:
+      name: ${JWT_COOKIE_NAME:aipack_refresh}
+      # auto = Secure en production (P0.5 TLS) ; false en local HTTP
+      secure: ${JWT_COOKIE_SECURE:auto}
+      same-site: Lax
+      path: /api/v1/auth
   webhook:
     secret: ${WEBHOOK_SECRET:change-me-webhook-secret-min-16-chars}
   rate-limit:
@@ -37,11 +43,12 @@ app:
     ocr-languages: ${DOCUMENT_OCR_LANGUAGES:fra+eng}
     ocr-min-chars: ${DOCUMENT_OCR_MIN_CHARS:40}
   clamav:
-    enabled: ${CLAMAV_ENABLED:false}
+    # Vide = auto (on + fail-closed si APP_ENV=production|prod). true/false force.
+    enabled: ${CLAMAV_ENABLED:}
     host: ${CLAMAV_HOST:localhost}
     port: ${CLAMAV_PORT:3310}
     timeout: ${CLAMAV_TIMEOUT:10s}
-    fail-open: ${CLAMAV_FAIL_OPEN:true}
+    fail-open: ${CLAMAV_FAIL_OPEN:}
   invoices:
     auto-send: ${INVOICE_REMINDER_AUTO_SEND:false}
     scheduler-enabled: ${INVOICE_REMINDER_SCHEDULER_ENABLED:true}

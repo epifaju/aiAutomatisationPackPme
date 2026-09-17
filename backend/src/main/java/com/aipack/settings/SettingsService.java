@@ -1,14 +1,19 @@
 package com.aipack.settings;
 
+import com.aipack.audit.AuditRecord;
+import com.aipack.audit.AuditService;
+import com.aipack.audit.AuditStatus;
 import com.aipack.ai.AiProperties;
 import com.aipack.config.EmailProperties;
 import com.aipack.config.InvoiceProperties;
 import com.aipack.config.ReportProperties;
+import com.aipack.config.WebhookSecretHasher;
 import com.aipack.identity.Company;
 import com.aipack.identity.CompanyRepository;
 import com.aipack.identity.CompanySettings;
 import com.aipack.identity.CompanySettingsRepository;
 import com.aipack.invoice.InvoiceOverdueCalculator;
+import com.aipack.settings.dto.RotateWebhookSecretResponse;
 import com.aipack.settings.dto.SettingsResponse;
 import com.aipack.settings.dto.SettingsResponse.AiSettingsView;
 import com.aipack.settings.dto.SettingsResponse.CompanySettingsView;
@@ -24,6 +29,7 @@ import java.math.BigDecimal;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +40,7 @@ public class SettingsService {
     private final CompanyRepository companyRepository;
     private final CompanySettingsRepository companySettingsRepository;
     private final EntityManager entityManager;
+    private final AuditService auditService;
     private final AiProperties aiProperties;
     private final EmailProperties emailProperties;
     private final InvoiceProperties invoiceProperties;
@@ -43,6 +50,7 @@ public class SettingsService {
             CompanyRepository companyRepository,
             CompanySettingsRepository companySettingsRepository,
             EntityManager entityManager,
+            AuditService auditService,
             AiProperties aiProperties,
             EmailProperties emailProperties,
             InvoiceProperties invoiceProperties,
@@ -50,6 +58,7 @@ public class SettingsService {
         this.companyRepository = companyRepository;
         this.companySettingsRepository = companySettingsRepository;
         this.entityManager = entityManager;
+        this.auditService = auditService;
         this.aiProperties = aiProperties;
         this.emailProperties = emailProperties;
         this.invoiceProperties = invoiceProperties;
@@ -72,6 +81,29 @@ public class SettingsService {
         companyRepository.save(company);
         companySettingsRepository.save(settings);
         return toResponse(company, settings);
+    }
+
+    @Transactional
+    public RotateWebhookSecretResponse rotateWebhookSecret(UUID companyId) {
+        Company company = requireCompany(companyId);
+        String plaintext = WebhookSecretHasher.generatePlaintext();
+        String hash = WebhookSecretHasher.sha256Hex(plaintext);
+        int guard = 0;
+        while (companyRepository.existsByWebhookSecretHash(hash) && guard++ < 5) {
+            plaintext = WebhookSecretHasher.generatePlaintext();
+            hash = WebhookSecretHasher.sha256Hex(plaintext);
+        }
+        company.setWebhookSecretHash(hash);
+        companyRepository.save(company);
+        auditService.record(new AuditRecord(
+                companyId,
+                "settings",
+                "WEBHOOK_SECRET_ROTATED",
+                "Company",
+                companyId.toString(),
+                AuditStatus.SUCCESS,
+                Map.of("configured", true)));
+        return new RotateWebhookSecretResponse(plaintext, true);
     }
 
     CompanySettings settingsOf(UUID companyId) {
@@ -201,7 +233,9 @@ public class SettingsService {
                         settings.getLeadScoreHighMax(),
                         settings.getLeadConfidenceThreshold()),
                 new DocumentSettingsView(settings.getDocumentConfidenceThreshold()),
-                new SecuritySettingsView(settings.getDataRetentionDays()));
+                new SecuritySettingsView(
+                        settings.getDataRetentionDays(),
+                        company.getWebhookSecretHash() != null && !company.getWebhookSecretHash().isBlank()));
     }
 
     private static CompanySettings defaults() {

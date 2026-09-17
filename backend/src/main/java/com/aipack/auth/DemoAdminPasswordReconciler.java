@@ -21,8 +21,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class DemoAdminPasswordReconciler implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(DemoAdminPasswordReconciler.class);
-    static final String DEMO_EMAIL = "demo.admin@aipack.example";
-    static final String DEMO_PASSWORD = "DemoAdmin!2026";
+    public static final String DEMO_EMAIL = "demo.admin@aipack.example";
+    public static final String DEMO_PASSWORD = "DemoAdmin!2026";
+    public static final String DEMO_USER_EMAIL = "demo.user@aipack.example";
+    public static final String DEMO_USER_PASSWORD = "DemoUser!2026";
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -47,13 +49,18 @@ public class DemoAdminPasswordReconciler implements ApplicationRunner {
             log.debug("Demo admin password reconciler skipped (demo seed disabled)");
             return;
         }
-        userRepository.findAllByEmailIgnoreCase(DEMO_EMAIL).stream().findFirst().ifPresent(this::reconcile);
+        userRepository.findAllByEmailIgnoreCase(DEMO_EMAIL).stream().findFirst().ifPresent(user -> reconcile(user, DEMO_PASSWORD));
+        userRepository
+                .findAllByEmailIgnoreCase(DEMO_USER_EMAIL)
+                .stream()
+                .findFirst()
+                .ifPresent(user -> reconcile(user, DEMO_USER_PASSWORD));
     }
 
-    private void reconcile(User user) {
-        if (!passwordEncoder.matches(DEMO_PASSWORD, user.getPasswordHash())) {
-            user.setPasswordHash(passwordEncoder.encode(DEMO_PASSWORD));
-            log.info("Demo admin password rehashed with Spring BCrypt (demo seed only)");
+    private void reconcile(User user, String plaintext) {
+        if (!passwordEncoder.matches(plaintext, user.getPasswordHash())) {
+            user.setPasswordHash(passwordEncoder.encode(plaintext));
+            log.info("Demo account {} password rehashed with Spring BCrypt (demo seed only)", user.getEmail());
         }
     }
 }

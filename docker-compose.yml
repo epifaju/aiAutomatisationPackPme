@@ -202,6 +202,8 @@ services:
       APP_BASE_URL: ${APP_BASE_URL:-http://localhost:5173}
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
       JWT_SECRET: ${JWT_SECRET:-change-me-jwt-secret-min-32-characters-long}
+      JWT_COOKIE_NAME: ${JWT_COOKIE_NAME:-aipack_refresh}
+      JWT_COOKIE_SECURE: ${JWT_COOKIE_SECURE:-auto}
       WEBHOOK_SECRET: ${WEBHOOK_SECRET:-change-me-webhook-secret-min-16-chars}
       AI_GENERATED_EMAIL_AUTO_SEND: ${AI_GENERATED_EMAIL_AUTO_SEND:-false}
       INVOICE_REMINDER_AUTO_SEND: ${INVOICE_REMINDER_AUTO_SEND:-false}
@@ -232,11 +234,11 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       REDIS_PASSWORD: ${REDIS_PASSWORD:-change-me-redis-password}
-      CLAMAV_ENABLED: ${CLAMAV_ENABLED:-false}
+      CLAMAV_ENABLED: ${CLAMAV_ENABLED:-}
       CLAMAV_HOST: ${CLAMAV_HOST:-clamav}
       CLAMAV_PORT: ${CLAMAV_PORT:-3310}
       CLAMAV_TIMEOUT: ${CLAMAV_TIMEOUT:-10s}
-      CLAMAV_FAIL_OPEN: ${CLAMAV_FAIL_OPEN:-true}
+      CLAMAV_FAIL_OPEN: ${CLAMAV_FAIL_OPEN:-}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     depends_on:
@@ -316,7 +318,7 @@ services:
     networks:
       - aipack
 
-  # ClamAV — optionnel, profile "clamav" (PRD V2 ; off par défaut)
+  # ClamAV — profile "clamav" en local ; toujours démarré avec docker-compose.prod.yml (P1.4)
   clamav:
     profiles: ["clamav"]
     image: clamav/clamav:1.4.2

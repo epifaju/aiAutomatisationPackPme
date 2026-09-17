@@ -24,7 +24,7 @@ $env:BACKEND_PORT="18080"
 ```
 
 Les workflows **n’accèdent plus** à `$env` / `process.env` (`N8N_BLOCK_ENV_ACCESS_IN_NODE=true`, P0.4).
-Le secret `WEBHOOK_SECRET` est importé en credential n8n **`AIPACK Backend Webhook`** (`httpHeaderAuth`) par `n8n-init`.
+Le secret `WEBHOOK_SECRET` est importé en credential n8n **`AIPACK Backend Webhook`** (`httpHeaderAuth`) par `n8n-init`. Côté backend (P1.1), ce secret est lié à l’entreprise démo (hash) ; un autre `companyId` avec le même header est rejeté (`403 WEBHOOK_TENANT_MISMATCH`). Après rotation Settings, mettre à jour le credential n8n.
 L’URL backend est figée à `http://backend:8080` (réseau Compose). Aucun secret dans les JSON.
 
 Au premier `n8n-init`, un compte **owner** est créé si besoin (`N8N_OWNER_EMAIL` / `N8N_OWNER_PASSWORD`). Login UI n8n obligatoire ensuite. En production (P0.5) le port n8n n’est plus publié — tunnel SSH, voir [docs/proxy.md](../docs/proxy.md).

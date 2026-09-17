@@ -76,6 +76,7 @@ if [[ "${1:-}" == "--prod" ]]; then
   check_health "ollama" "aipack-ollama"
   check_health "n8n" "aipack-n8n"
   check_health "mailpit" "aipack-mailpit"
+  check_health "clamav" "aipack-clamav"
   check_health "backend" "aipack-backend"
   check_health "frontend" "aipack-frontend"
   check_health "caddy" "aipack-caddy"

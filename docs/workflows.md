@@ -29,7 +29,7 @@ node n8n/build-workflows.mjs
 
 ## Credentials
 
-Le dossier `n8n/credentials/` est gitignoré. Le credential runtime `AIPACK Backend Webhook` est créé par `n8n-init` depuis `WEBHOOK_SECRET` (chiffré avec `N8N_ENCRYPTION_KEY`). Ne pas committer d’exports contenant des secrets en clair.
+Le dossier `n8n/credentials/` est gitignoré. Le credential runtime `AIPACK Backend Webhook` est créé par `n8n-init` depuis `WEBHOOK_SECRET` (chiffré avec `N8N_ENCRYPTION_KEY`). Le backend associe ce secret à l’entreprise démo (P1.1) ; ne pas réutiliser le même secret pour un autre tenant. Ne pas committer d’exports contenant des secrets en clair.
 
 ## Où tester
 

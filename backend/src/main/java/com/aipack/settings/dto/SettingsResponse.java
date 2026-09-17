@@ -37,5 +37,5 @@ public record SettingsResponse(
 
     public record DocumentSettingsView(BigDecimal confidenceThreshold) {}
 
-    public record SecuritySettingsView(int dataRetentionDays) {}
+    public record SecuritySettingsView(int dataRetentionDays, boolean webhookSecretConfigured) {}
 }

@@ -30,7 +30,7 @@ class SchemaIT {
         Integer latest = jdbcTemplate.queryForObject(
                 "SELECT max(installed_rank) FROM flyway_schema_history WHERE success = true",
                 Integer.class);
-        assertThat(latest).isGreaterThanOrEqualTo(9);
+        assertThat(latest).isGreaterThanOrEqualTo(11);
     }
 
     @Test
@@ -65,7 +65,7 @@ class SchemaIT {
     @Test
     void demoSeedMatchesPrdMinimums() {
         assertThat(count("companies")).isEqualTo(1);
-        assertThat(count("users")).isEqualTo(1);
+        assertThat(count("users")).isEqualTo(2);
         assertThat(count("leads")).isEqualTo(10);
         assertThat(count("emails")).isEqualTo(10);
         assertThat(count("invoices")).isEqualTo(10);
@@ -82,6 +82,17 @@ class SchemaIT {
                 """,
                 Integer.class);
         assertThat(uniqueConstraints).isEqualTo(1);
+    }
+
+    @Test
+    void companyWebhookSecretHashIsUnique() {
+        Integer indexes = jdbcTemplate.queryForObject(
+                """
+                SELECT count(*) FROM pg_indexes
+                WHERE indexname = 'uq_companies_webhook_secret_hash'
+                """,
+                Integer.class);
+        assertThat(indexes).isEqualTo(1);
     }
 
     @Test

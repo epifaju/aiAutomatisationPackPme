@@ -1,7 +1,8 @@
 package com.aipack.config;
 
-import com.aipack.auth.JwtAuthenticationFilter;
+import com.aipack.auth.JsonAccessDeniedHandler;
 import com.aipack.auth.JsonAuthEntryPoint;
+import com.aipack.auth.JwtAuthenticationFilter;
 import com.aipack.auth.JwtProperties;
 import com.aipack.ratelimit.RateLimitFilter;
 import com.aipack.ratelimit.RateLimitProperties;
@@ -11,6 +12,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -20,6 +22,7 @@ import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWrite
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @EnableConfigurationProperties({JwtProperties.class, RateLimitProperties.class})
 public class SecurityConfig {
 
@@ -31,12 +34,14 @@ public class SecurityConfig {
             HttpSecurity http,
             RateLimitFilter rateLimitFilter,
             JwtAuthenticationFilter jwtAuthenticationFilter,
-            JsonAuthEntryPoint jsonAuthEntryPoint)
+            JsonAuthEntryPoint jsonAuthEntryPoint,
+            JsonAccessDeniedHandler jsonAccessDeniedHandler)
             throws Exception {
         http.csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .exceptionHandling(ex -> ex.authenticationEntryPoint(jsonAuthEntryPoint))
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(jsonAuthEntryPoint)
+                        .accessDeniedHandler(jsonAccessDeniedHandler))
                 .headers(headers -> {
                     headers.contentTypeOptions(Customizer.withDefaults())
                             .frameOptions(frame -> frame.deny())
@@ -69,6 +74,12 @@ public class SecurityConfig {
                                 "/webhook/reports/daily",
                                 "/webhook/audit/n8n-error")
                         .permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/settings")
+                        .hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/settings/webhook-secret/rotate")
+                        .hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/automations/*/auto-send")
+                        .hasRole("ADMIN")
                         .anyRequest()
                         .authenticated())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

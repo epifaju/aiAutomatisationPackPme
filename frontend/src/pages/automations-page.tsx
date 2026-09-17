@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Badge, Button, Card, ErrorText, PageHeader } from "@/components/ui";
 import { api } from "@/lib/api";
+import { isAdmin } from "@/lib/rbac";
+import { useAuthStore } from "@/stores/auth-store";
 import type { Automation } from "@/types/api";
 
 type RunResult = { id: string; message: string };
@@ -9,6 +11,7 @@ type RunResult = { id: string; message: string };
 export function AutomationsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const admin = isAdmin(useAuthStore((s) => s.user?.role));
   const list = useQuery({
     queryKey: ["automations"],
     queryFn: () => api<Automation[]>("/api/v1/automations"),
@@ -59,7 +62,7 @@ export function AutomationsPage() {
               </p>
             ) : null}
             <div className="mt-4 flex flex-wrap gap-2">
-              {["email-assistant", "invoice-reminder", "daily-report"].includes(item.id) ? (
+            {admin && ["email-assistant", "invoice-reminder", "daily-report"].includes(item.id) ? (
                 <Button
                   variant="outline"
                   onClick={() => autoSend.mutate({ id: item.id, enabled: !item.autoSendCompany })}

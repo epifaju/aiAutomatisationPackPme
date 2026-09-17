@@ -1,5 +1,5 @@
 import { useAuthStore } from "@/stores/auth-store";
-import type { ApiResponse, TokenResponse } from "@/types/api";
+import type { ApiResponse, TokenResponse, UserMe } from "@/types/api";
 
 export class ApiClientError extends Error {
   readonly status: number;
@@ -26,19 +26,16 @@ async function parseBody<T>(response: Response): Promise<T | null> {
 let refreshInFlight: Promise<boolean> | null = null;
 
 async function refreshTokens(): Promise<boolean> {
-  const refreshToken = useAuthStore.getState().refreshToken;
-  if (!refreshToken) return false;
   const response = await fetch("/api/v1/auth/refresh", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refreshToken }),
+    credentials: "include",
   });
   if (!response.ok) {
     useAuthStore.getState().clear();
     return false;
   }
   const payload = (await response.json()) as ApiResponse<TokenResponse>;
-  if (!payload.success || !payload.data) {
+  if (!payload.success || !payload.data?.accessToken) {
     useAuthStore.getState().clear();
     return false;
   }
@@ -48,14 +45,33 @@ async function refreshTokens(): Promise<boolean> {
 
 function ensureFreshToken() {
   const { accessToken, expiresAt } = useAuthStore.getState();
-  if (!accessToken || !expiresAt) return Promise.resolve(Boolean(accessToken));
-  if (expiresAt - Date.now() > 30_000) return Promise.resolve(true);
+  if (accessToken && expiresAt && expiresAt - Date.now() > 30_000) {
+    return Promise.resolve(true);
+  }
   if (!refreshInFlight) {
     refreshInFlight = refreshTokens().finally(() => {
       refreshInFlight = null;
     });
   }
   return refreshInFlight;
+}
+
+export async function restoreSession(): Promise<boolean> {
+  try {
+    localStorage.removeItem("aipack-auth");
+  } catch {
+    /* ignore quota / private mode */
+  }
+  const restored = await refreshTokens();
+  if (!restored) return false;
+  try {
+    const me = await api<UserMe>("/api/v1/auth/me");
+    useAuthStore.getState().setUser(me);
+    return true;
+  } catch {
+    useAuthStore.getState().clear();
+    return false;
+  }
 }
 
 export async function api<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
@@ -68,7 +84,7 @@ export async function api<T>(path: string, init: RequestInit = {}, retry = true)
   if (init.body && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
   }
-  const response = await fetch(path, { ...init, headers });
+  const response = await fetch(path, { ...init, headers, credentials: "include" });
   if (response.status === 401 && retry && !path.startsWith("/api/v1/auth/")) {
     const refreshed = await refreshTokens();
     if (refreshed) return api<T>(path, init, false);
@@ -97,12 +113,12 @@ export async function downloadAuthenticated(path: string, filename: string): Pro
   const headers = new Headers();
   const token = useAuthStore.getState().accessToken;
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  let response = await fetch(path, { headers });
+  let response = await fetch(path, { headers, credentials: "include" });
   if (response.status === 401) {
     const refreshed = await refreshTokens();
     if (!refreshed) throw new ApiClientError(401, "UNAUTHORIZED", "Authentification requise");
     headers.set("Authorization", `Bearer ${useAuthStore.getState().accessToken}`);
-    response = await fetch(path, { headers });
+    response = await fetch(path, { headers, credentials: "include" });
   }
   if (!response.ok) {
     throw new ApiClientError(response.status, "DOWNLOAD_FAILED", `Téléchargement impossible (${response.status})`);

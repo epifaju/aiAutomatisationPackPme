@@ -74,6 +74,7 @@ export function AppShell() {
         <div className="hidden border-t border-white/10 px-5 py-4 lg:block">
           <p className="text-sm text-white">{user?.fullName}</p>
           <p className="text-xs text-white/50">{user?.email}</p>
+          <p className="text-xs uppercase tracking-wide text-white/40">{user?.role}</p>
           <button
             type="button"
             onClick={() => void logout()}

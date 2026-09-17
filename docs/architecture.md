@@ -24,7 +24,7 @@ Entrée unique : profile Compose `proxy` en local ; overlay `docker-compose.prod
 | `ollama` / `ollama-init` | Inférence locale + pull modèle |
 | `minio` / `minio-init` | Stockage objet documents + pièces jointes email |
 | `backend` | API Spring Boot ; OCR Tesseract (fra+eng) pour scans PDF/PNG/JPEG |
-| `clamav` | Antivirus clamd (profile `clamav`, off par défaut) |
+| `clamav` | Antivirus clamd (profile `clamav` en local ; toujours on en overlay prod, P1.4) |
 | `mailpit` | SMTP de test |
 | `redis` | Cache AI authentifié (`REDIS_PASSWORD`, fail-open) |
 | `reverse-proxy` | Caddy — profile `proxy` en local ; toujours actif avec `docker-compose.prod.yml` |
@@ -32,7 +32,7 @@ Entrée unique : profile Compose `proxy` en local ; overlay `docker-compose.prod
 ## Backend
 
 - Java 21 / Spring Boot 3.5
-- Sécurité JWT (access 15 min, refresh 7 j rotatif)
+- Sécurité JWT (access 15 min en mémoire ; refresh 7 j rotatif en cookie HttpOnly, P1.3)
 - Modules : auth, audit, leads, emails, documents, invoices, reports, settings, automations
 - Fournisseur IA abstrait (`AIProvider`) → Ollama (défaut), OpenAI-compatible (`openai`), ou Anthropic Messages (`anthropic`)
 - Logs JSON structurés (Logback)
@@ -41,7 +41,7 @@ Entrée unique : profile Compose `proxy` en local ; overlay `docker-compose.prod
 
 - React 19 + Vite + TypeScript + Tailwind
 - Pages : Login, Dashboard, Inbox, Leads, Documents, Invoices, Automations, Audit, Settings
-- Aucune clé API côté navigateur
+- Aucune clé API ni refresh JWT côté navigateur (cookie HttpOnly)
 
 ## Données
 

@@ -1,35 +1,34 @@
 package com.aipack.config;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import com.aipack.identity.Company;
+import com.aipack.identity.CompanyRepository;
+import java.util.UUID;
 import org.springframework.stereotype.Component;
 
 @Component
 public class WebhookAuthenticator {
 
-    private final WebhookProperties webhookProperties;
+    private final CompanyRepository companyRepository;
 
-    public WebhookAuthenticator(WebhookProperties webhookProperties) {
-        this.webhookProperties = webhookProperties;
+    public WebhookAuthenticator(CompanyRepository companyRepository) {
+        this.companyRepository = companyRepository;
     }
 
-    public void requireValidSecret(String providedSecret) {
-        String expected = webhookProperties.secret();
-        if (expected == null
-                || expected.isBlank()
-                || providedSecret == null
-                || providedSecret.isBlank()
-                || !MessageDigest.isEqual(sha256(expected), sha256(providedSecret))) {
+    /**
+     * Résout l’entreprise à partir du secret (hash unique). Le {@code companyId} du body
+     * doit correspondre s’il est fourni — il n’est plus une source de confiance.
+     */
+    public UUID requireCompany(String providedSecret, UUID claimedCompanyId) {
+        if (providedSecret == null || providedSecret.isBlank()) {
             throw new WebhookUnauthorizedException();
         }
-    }
-
-    private static byte[] sha256(String value) {
-        try {
-            return MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8));
-        } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("SHA-256 not available", ex);
+        String hash = WebhookSecretHasher.sha256Hex(providedSecret);
+        Company company = companyRepository
+                .findByWebhookSecretHash(hash)
+                .orElseThrow(WebhookUnauthorizedException::new);
+        if (claimedCompanyId != null && !claimedCompanyId.equals(company.getId())) {
+            throw new WebhookTenantMismatchException();
         }
+        return company.getId();
     }
 }

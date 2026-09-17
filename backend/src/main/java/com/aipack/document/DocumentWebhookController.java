@@ -29,7 +29,7 @@ public class DocumentWebhookController {
     public ResponseEntity<ApiResponse<DocumentResponse>> process(
             @RequestHeader(value = SECRET_HEADER, required = false) String providedSecret,
             @Valid @RequestBody WebhookDocumentRequest request) {
-        webhookAuthenticator.requireValidSecret(providedSecret);
+        webhookAuthenticator.requireCompany(providedSecret, request.companyId());
         boolean process = request.process() == null || request.process();
         DocumentService.IngestResult result = documentService.ingestFromWebhook(request, process);
         HttpStatus status = result.created() ? HttpStatus.CREATED : HttpStatus.OK;

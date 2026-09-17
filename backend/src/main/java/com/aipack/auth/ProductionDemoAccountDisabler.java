@@ -44,6 +44,9 @@ public class ProductionDemoAccountDisabler implements ApplicationRunner {
             return;
         }
         userRepository.findAllByEmailIgnoreCase(DemoAdminPasswordReconciler.DEMO_EMAIL).forEach(this::disableIfNeeded);
+        userRepository
+                .findAllByEmailIgnoreCase(DemoAdminPasswordReconciler.DEMO_USER_EMAIL)
+                .forEach(this::disableIfNeeded);
     }
 
     private void disableIfNeeded(User user) {

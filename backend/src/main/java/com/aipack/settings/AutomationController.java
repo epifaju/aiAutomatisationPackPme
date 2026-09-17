@@ -7,6 +7,7 @@ import com.aipack.settings.dto.AutomationResponse;
 import com.aipack.settings.dto.AutomationRunResponse;
 import jakarta.validation.Valid;
 import java.util.List;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -37,6 +38,7 @@ public class AutomationController {
     }
 
     @PostMapping("/{id}/auto-send")
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<AutomationResponse> autoSend(
             @AuthenticationPrincipal AuthUser principal,
             @PathVariable String id,

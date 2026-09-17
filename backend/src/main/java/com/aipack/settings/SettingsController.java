@@ -2,11 +2,14 @@ package com.aipack.settings;
 
 import com.aipack.auth.AuthUser;
 import com.aipack.common.api.ApiResponse;
+import com.aipack.settings.dto.RotateWebhookSecretResponse;
 import com.aipack.settings.dto.SettingsResponse;
 import com.aipack.settings.dto.UpdateSettingsRequest;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -28,8 +31,15 @@ public class SettingsController {
     }
 
     @PutMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<SettingsResponse> update(
             @AuthenticationPrincipal AuthUser principal, @Valid @RequestBody UpdateSettingsRequest request) {
         return ApiResponse.ok(settingsService.update(principal.companyId(), request));
+    }
+
+    @PostMapping("/webhook-secret/rotate")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<RotateWebhookSecretResponse> rotateWebhookSecret(@AuthenticationPrincipal AuthUser principal) {
+        return ApiResponse.ok(settingsService.rotateWebhookSecret(principal.companyId()));
     }
 }

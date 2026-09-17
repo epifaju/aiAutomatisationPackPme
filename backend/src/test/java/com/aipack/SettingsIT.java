@@ -52,6 +52,7 @@ class SettingsIT {
         assertThat(data.path("ai").path("runtimeProvider").asText()).isNotBlank();
         assertThat(data.path("invoices").path("autoSendEnv").asBoolean()).isFalse();
         assertThat(data.path("security").path("dataRetentionDays").asInt()).isEqualTo(365);
+        assertThat(data.path("security").path("webhookSecretConfigured").asBoolean()).isTrue();
 
         Map<String, Object> payload = Map.of(
                 "company", Map.of("name", "Demo SAS", "timezone", "Europe/Paris", "country", "FR"),

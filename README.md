@@ -160,10 +160,10 @@ $env:BACKEND_PORT="18080"
 | `redis` | Cache IA (auth `REDIS_PASSWORD`) | défaut | 1 |
 | `backend` | API Spring Boot | défaut | 2 |
 | `frontend` | Dashboard React | défaut | 11 |
-| `clamav` | Antivirus clamd | `clamav` (off) | V2 |
+| `clamav` | Antivirus clamd | `clamav` (off) / overlay prod | P1.4 |
 | `reverse-proxy` | Caddy (TLS / entrée unique) | `proxy` (off) / overlay prod | P0.5 |
 
-Le reverse proxy Caddy est **optionnel en local** (`--profile proxy`) et **obligatoire en production** via `docker-compose.prod.yml` (seuls 80/443 publiés) — [docs/proxy.md](docs/proxy.md). ClamAV est **optionnel** (`--profile clamav` + `CLAMAV_ENABLED=true`) — voir [docs/security.md](docs/security.md). Redis n’est une dépendance d’aucun autre service : le reste du stack démarre même si Redis est arrêté.
+Le reverse proxy Caddy est **optionnel en local** (`--profile proxy`) et **obligatoire en production** via `docker-compose.prod.yml` (seuls 80/443 publiés) — [docs/proxy.md](docs/proxy.md). ClamAV est **optionnel en local** (`--profile clamav` + `CLAMAV_ENABLED=true`) et **activé fail-closed en production** (overlay) — [docs/security.md](docs/security.md). Redis n’est une dépendance d’aucun autre service : le reste du stack démarre même si Redis est arrêté.
 
 ## Arborescence
 
@@ -215,6 +215,7 @@ Seed Flyway repeatable `database/seed/R__demo_data.sql` (inserts idempotents, do
 | --- | --- |
 | Entreprise | 1 (`Demo SAS`) |
 | Admin | 1 (`demo.admin@aipack.example`) |
+| User | 1 (`demo.user@aipack.example`) |
 | Leads | 10 |
 | Emails | 10 |
 | Factures | 10 |
@@ -226,6 +227,11 @@ Compte de démo (seed actif hors production — `DEMO_SEED_ENABLED` auto ; le ha
 ```text
 email    : demo.admin@aipack.example
 password : DemoAdmin!2026
+role     : ADMIN
+
+email    : demo.user@aipack.example
+password : DemoUser!2026
+role     : USER (lecture settings ; pas d’auto-envoi ni d’écriture settings)
 ```
 
 Ce compte ne doit pas servir en production (`APP_ENV=production` coupe le seed et désactive `demo.admin` s’il reste en base). `JWT_SECRET` doit faire au moins 32 caractères (voir `.env.example`).
@@ -237,16 +243,18 @@ Enveloppe `ApiResponse` sur login, refresh et `/me`. Logout répond `204`.
 | Méthode | Chemin | Auth |
 | --- | --- | --- |
 | `POST` | `/api/v1/auth/login` | public |
-| `POST` | `/api/v1/auth/refresh` | public (refresh token dans le body) |
+| `POST` | `/api/v1/auth/refresh` | public (cookie HttpOnly `aipack_refresh`) |
 | `POST` | `/api/v1/auth/logout` | `Authorization: Bearer <access>` |
 | `GET` | `/api/v1/auth/me` | `Authorization: Bearer <access>` |
 
-Access token : **15 min**. Refresh : **7 jours**, rotatif, hash SHA-256 en base. Réutiliser un refresh déjà révoqué invalide tous les refresh actifs de l’utilisateur.
+Access token : **15 min** (JSON + mémoire UI). Refresh : **7 jours**, rotatif, hash SHA-256 en base, livré uniquement en cookie `HttpOnly` / `SameSite=Lax` / `Path=/api/v1/auth` (`Secure` en production). Réutiliser un refresh déjà révoqué invalide tous les refresh actifs de l’utilisateur.
 
 ```bash
-curl -s -X POST http://localhost:8080/api/v1/auth/login \
+curl -s -c cookies.txt -X POST http://localhost:8080/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"demo.admin@aipack.example","password":"DemoAdmin!2026"}'
+
+curl -s -b cookies.txt -c cookies.txt -X POST http://localhost:8080/api/v1/auth/refresh
 
 curl -s http://localhost:8080/api/v1/auth/me \
   -H "Authorization: Bearer <accessToken>"
@@ -265,11 +273,12 @@ Compte démo : `demo.admin@aipack.example` / `DemoAdmin!2026`.
 | Méthode | Chemin | Auth |
 | --- | --- | --- |
 | `GET` / `PUT` | `/api/v1/settings` | JWT |
+| `POST` | `/api/v1/settings/webhook-secret/rotate` | JWT |
 | `GET` | `/api/v1/automations` | JWT |
 | `POST` | `/api/v1/automations/{id}/run` | JWT |
 | `POST` | `/api/v1/automations/{id}/auto-send` | JWT |
 
-`Run` est disponible pour les relances (`overdue/detect`) et le rapport du jour. Emails / leads / documents se lancent depuis leur page. L’auto-envoi entreprise reste inerte tant que la variable d’environnement correspondante est à `false`.
+`Run` est disponible pour les relances (`overdue/detect`) et le rapport du jour. Emails / leads / documents se lancent depuis leur page. L’auto-envoi entreprise (P1.2) n’est modifiable que par un **ADMIN** et reste inerte tant que la variable d’environnement correspondante est à `false`.
 
 ## Audit (Phase 5)
 
@@ -296,7 +305,7 @@ curl -s -X POST http://localhost:8080/webhook/audit/n8n-error \
 
 ## Leads (Phase 6)
 
-CRUD scoped à l’entreprise du jeton. Le webhook public est authentifié par `X-Webhook-Secret` (`WEBHOOK_SECRET`). La qualification IA passe par `AIProvider` (Ollama par défaut ; `openai` ou `anthropic` en cloud), avec retry, circuit breaker, cache Redis optionnel (fail-open) et prompt `ollama/prompts/lead-qualification.txt`.
+Le CRUD est scoped à l’entreprise du jeton. Les webhooks publics sont authentifiés par `X-Webhook-Secret` **par entreprise** (hash en base, P1.1) : le `companyId` du body doit correspondre au secret, il n’est plus une source de confiance. `WEBHOOK_SECRET` (env) est lié au tenant démo au démarrage si ce tenant n’a pas encore de hash. Rotation : `POST /api/v1/settings/webhook-secret/rotate`.
 
 | Méthode | Chemin | Auth |
 | --- | --- | --- |
@@ -397,7 +406,7 @@ curl -s -X POST http://localhost:8080/webhook/invoices/reminder \
 
 ## Documents (Phase 8)
 
-Upload scoped à l’entreprise, stockage objet MinIO (jamais en `bytea`). L’extraction de texte passe par Apache Tika (PDF, PNG, JPEG, TXT). Le parsing IA utilise `AIProvider` et le prompt `ollama/prompts/document-extraction.txt`. MIME contrôlé par **magic bytes** (Tika), pas seulement l’extension. Taille max : 20 Mo. Un même fichier (checksum SHA-256) n’est pas recréé. Scan antivirus optionnel (ClamAV) avant stockage si `CLAMAV_ENABLED=true`.
+Upload scoped à l’entreprise, stockage objet MinIO (jamais en `bytea`). L’extraction de texte passe par Apache Tika (PDF, PNG, JPEG, TXT). Le parsing IA utilise `AIProvider` et le prompt `ollama/prompts/document-extraction.txt`. MIME contrôlé par **magic bytes** (Tika), pas seulement l’extension. Taille max : 20 Mo. Un même fichier (checksum SHA-256) n’est pas recréé. Scan antivirus **ClamAV** avant stockage si activé (P1.4 : obligatoire fail-closed en prod).
 
 Si `confidenceScore` < seuil entreprise (`document_confidence_threshold`, 0,700 par défaut) → `REVIEW_REQUIRED`. OCR (Tesseract `fra+eng` dans l’image backend) : PDF/PNG/JPEG scannés sont OCRisés si peu de texte embarqué ; si l’OCR reste vide → revue humaine, l’IA n’est pas appelée. Parsing JSON impossible → `ERROR` / `AI_PARSING_ERROR`. Ollama indisponible → `ERROR` / `AI_UNAVAILABLE`. Variables : `DOCUMENT_OCR_ENABLED`, `DOCUMENT_OCR_LANGUAGES`, `DOCUMENT_OCR_MIN_CHARS`.
 

@@ -30,7 +30,7 @@ public class DailyReportWebhookController {
     public ResponseEntity<ApiResponse<DailyReportResponse>> daily(
             @RequestHeader(value = SECRET_HEADER, required = false) String providedSecret,
             @Valid @RequestBody WebhookDailyReportRequest request) {
-        webhookAuthenticator.requireValidSecret(providedSecret);
+        webhookAuthenticator.requireCompany(providedSecret, request.companyId());
         DailyReportResponse report = dailyReportService.generateFromWebhook(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(report));
     }

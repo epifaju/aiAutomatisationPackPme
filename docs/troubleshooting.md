@@ -63,7 +63,7 @@ Voir `n8n/README.md`.
 
 ## Login démo échoue
 
-Compte : `demo.admin@aipack.example` / `DemoAdmin!2026` (profils dev/test). Vérifier que Flyway a appliqué le seed et que le backend a démarré (réécriture BCrypt).
+Compte : `demo.admin@aipack.example` / `DemoAdmin!2026` (ADMIN) ou `demo.user@aipack.example` / `DemoUser!2026` (USER, P1.2). Profils dev/test. Vérifier que Flyway a appliqué le seed et que le backend a démarré (réécriture BCrypt).
 
 ## Healthcheck échoue
 

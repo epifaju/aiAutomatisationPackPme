@@ -2,6 +2,7 @@ package com.aipack.common.api;
 
 import com.aipack.audit.AuditException;
 import com.aipack.auth.AuthException;
+import com.aipack.config.WebhookTenantMismatchException;
 import com.aipack.config.WebhookUnauthorizedException;
 import com.aipack.customer.CustomerException;
 import com.aipack.document.DocumentException;
@@ -101,6 +102,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleWebhook(WebhookUnauthorizedException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.failure(ApiError.of("UNAUTHORIZED", ex.getMessage())));
+    }
+
+    @ExceptionHandler(WebhookTenantMismatchException.class)
+    public ResponseEntity<ApiResponse<Void>> handleWebhookTenant(WebhookTenantMismatchException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.failure(ApiError.of("WEBHOOK_TENANT_MISMATCH", ex.getMessage())));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

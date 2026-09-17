@@ -27,11 +27,11 @@ public class ClamAvVirusScanner implements VirusScanner {
     private final Duration timeout;
     private final boolean failOpen;
 
-    public ClamAvVirusScanner(ClamAvProperties properties) {
+    public ClamAvVirusScanner(ClamAvProperties properties, boolean failOpen) {
         this.host = properties.hostOrDefault();
         this.port = properties.portOrDefault();
         this.timeout = properties.timeoutOrDefault();
-        this.failOpen = properties.failOpen();
+        this.failOpen = failOpen;
     }
 
     /** Package-visible for tests with custom endpoint. */

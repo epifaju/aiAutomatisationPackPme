@@ -1,5 +1,6 @@
 -- Données de démonstration (PRD §38). Aucune donnée personnelle réelle.
 -- Identifiant admin de démo : demo.admin@aipack.example / DemoAdmin!2026
+-- Identifiant USER de démo : demo.user@aipack.example / DemoUser!2026 (RBAC P1.2)
 -- Mot de passe hashé via pgcrypto (bcrypt). Ne pas utiliser en production.
 
 INSERT INTO companies (
@@ -24,6 +25,21 @@ INSERT INTO users (
     crypt('DemoAdmin!2026', gen_salt('bf', 10)),
     'Admin Démo',
     'ADMIN',
+    TRUE,
+    now(), now(),
+    'seed'
+) ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO users (
+    id, company_id, email, password_hash, full_name, role, enabled,
+    created_at, updated_at, created_by
+) VALUES (
+    'bbbbbbbb-0000-4000-8000-000000000003',
+    'aaaaaaaa-0000-4000-8000-000000000001',
+    'demo.user@aipack.example',
+    crypt('DemoUser!2026', gen_salt('bf', 10)),
+    'Utilisateur Démo',
+    'USER',
     TRUE,
     now(), now(),
     'seed'
