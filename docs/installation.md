@@ -40,11 +40,22 @@ docker compose up minio-init ollama-init n8n-init
 docker compose restart n8n
 ```
 
+## Production (P0.5 — Caddy uniquement)
+
+Overlay `docker-compose.prod.yml` : **seuls les ports 80 et 443** sont publiés. Détail : [proxy.md](proxy.md).
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --wait
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up minio-init ollama-init n8n-init
+./scripts/healthcheck.sh --prod
+```
+
 ## Accès
 
 | Service | URL par défaut |
 | --- | --- |
-| UI | http://localhost:5173 |
+| UI (dev) | http://localhost:5173 |
+| UI (prod) | `https://<PROXY_SITE>` — seuls 80/443 publiés |
 | Backend / Swagger | http://localhost:8080/swagger-ui.html |
 | n8n | http://localhost:5678 (login owner `N8N_OWNER_*`) |
 | Mailpit | http://localhost:8025 |
@@ -69,10 +80,12 @@ Modifiez les variables `*_PORT` dans `.env`, puis relancez Compose. Exemple : `B
 
 ```powershell
 .\scripts\healthcheck.ps1
+.\scripts\healthcheck.ps1 -Prod   # overlay production
 ```
 
 ```bash
 ./scripts/healthcheck.sh
+./scripts/healthcheck.sh --prod
 ```
 
 Smoke n8n + Ollama : `scripts/smoke-n8n-ollama.ps1`.
@@ -80,6 +93,6 @@ Smoke n8n + Ollama : `scripts/smoke-n8n-ollama.ps1`.
 ## Suite
 
 - Configuration : [configuration.md](configuration.md)
-- Reverse proxy (optionnel) : [proxy.md](proxy.md)
+- Reverse proxy production : [proxy.md](proxy.md)
 - Sauvegarde : [configuration.md](configuration.md#sauvegarde--restauration) et `scripts/backup.*`
 - Dépannage : [troubleshooting.md](troubleshooting.md)

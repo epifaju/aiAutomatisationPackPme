@@ -75,7 +75,7 @@ docker compose restart n8n
 docker compose ps
 ```
 
-L’UI est servie sur le port `FRONTEND_PORT` (5173). Nginx proxifie `/api/` vers le backend (même origine, pas de CORS à configurer en Compose).
+L’UI est servie sur le port `FRONTEND_PORT` (5173) en développement. Nginx proxifie `/api/` vers le backend (même origine, pas de CORS à configurer en Compose). En production, seuls **80/443** (Caddy) sont publiés — [docs/proxy.md](docs/proxy.md).
 
 Développement local du frontend (Vite proxifie `/api` vers `http://localhost:$BACKEND_PORT`, surcharge possible avec `API_PROXY_TARGET`) :
 
@@ -108,8 +108,8 @@ Détails : `tests/e2e/README.md`.
 | Service | Port hôte | URL / usage |
 | --- | --- | --- |
 | PostgreSQL | `POSTGRES_PORT` (5432) | `localhost:5432` — les conteneurs parlent à `postgres:5432` |
-| Frontend | `FRONTEND_PORT` (5173) | http://localhost:5173 — dashboard React |
-| Backend | `BACKEND_PORT` (8080) | http://localhost:8080 → Swagger UI · http://localhost:8080/actuator/health |
+| Frontend | `FRONTEND_PORT` (5173) | http://localhost:5173 — dashboard React (**dev** ; prod = Caddy 80/443) |
+| Backend | `BACKEND_PORT` (8080) | http://localhost:8080 → Swagger UI · health (**dev**) |
 | n8n | `N8N_PORT` (5678) | http://localhost:5678 |
 | Mailpit SMTP | `MAILPIT_SMTP_HOST_PORT` (1025) | SMTP de test |
 | Mailpit UI | `MAILPIT_UI_PORT` (8025) | http://localhost:8025 |
@@ -161,9 +161,9 @@ $env:BACKEND_PORT="18080"
 | `backend` | API Spring Boot | défaut | 2 |
 | `frontend` | Dashboard React | défaut | 11 |
 | `clamav` | Antivirus clamd | `clamav` (off) | V2 |
-| `reverse-proxy` | Caddy (TLS / entrée unique) | `proxy` (off) | V2 / prod |
+| `reverse-proxy` | Caddy (TLS / entrée unique) | `proxy` (off) / overlay prod | P0.5 |
 
-Le reverse proxy Caddy est **optionnel** (`--profile proxy`) — voir [docs/proxy.md](docs/proxy.md). ClamAV est **optionnel** (`--profile clamav` + `CLAMAV_ENABLED=true`) — voir [docs/security.md](docs/security.md). Redis n’est une dépendance d’aucun autre service : le reste du stack démarre même si Redis est arrêté.
+Le reverse proxy Caddy est **optionnel en local** (`--profile proxy`) et **obligatoire en production** via `docker-compose.prod.yml` (seuls 80/443 publiés) — [docs/proxy.md](docs/proxy.md). ClamAV est **optionnel** (`--profile clamav` + `CLAMAV_ENABLED=true`) — voir [docs/security.md](docs/security.md). Redis n’est une dépendance d’aucun autre service : le reste du stack démarre même si Redis est arrêté.
 
 ## Arborescence
 
@@ -174,6 +174,7 @@ ai-automation-pack/
 ├── PRD___AI_Automation_Pack_for_TPE-PME_v1.1.md
 ├── docker-compose.yml
 ├── docker-compose.dev.yml
+├── docker-compose.prod.yml     # P0.5 — Caddy 80/443, pas de ports internes
 ├── .env.example
 ├── .gitignore
 ├── .gitattributes
@@ -477,10 +478,11 @@ curl -s -X POST http://localhost:8080/api/v1/emails/<id>/send \
 | Élément | Emplacement |
 | --- | --- |
 | CI backend / frontend / E2E | `.github/workflows/` |
-| Install + healthcheck | `scripts/install.*`, `scripts/healthcheck.*` |
+| Install + healthcheck | `scripts/install.*`, `scripts/healthcheck.*` (`-Prod` / `--prod`) |
+| Compose prod (P0.5) | `docker-compose.prod.yml` — Caddy 80/443 |
 | Backup / restore | `scripts/backup.*`, `scripts/restore.*` |
 | Archive release | `scripts/package-release.*` → `dist/` |
-| Documentation | [docs/installation.md](docs/installation.md), [configuration.md](docs/configuration.md), [architecture.md](docs/architecture.md), [security.md](docs/security.md), [troubleshooting.md](docs/troubleshooting.md), [workflows.md](docs/workflows.md) |
+| Documentation | [docs/installation.md](docs/installation.md), [configuration.md](docs/configuration.md), [architecture.md](docs/architecture.md), [security.md](docs/security.md), [proxy.md](docs/proxy.md), [troubleshooting.md](docs/troubleshooting.md), [workflows.md](docs/workflows.md) |
 
 ## Modules MVP
 

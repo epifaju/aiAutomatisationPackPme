@@ -1,0 +1,45 @@
+# P0.5 — overlay production : aucun port interne publié ; entrée unique Caddy :80/:443.
+# Usage :
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --wait
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up minio-init ollama-init n8n-init
+#
+# Prérequis .env : APP_ENV=production, PROXY_SITE=app.exemple.com, PROXY_ACME_EMAIL=...,
+# APP_BASE_URL=https://app.exemple.com, secrets hors placeholders (voir docs/proxy.md).
+
+services:
+  postgres:
+    ports: !override []
+
+  n8n:
+    ports: !override []
+
+  ollama:
+    ports: !override []
+
+  mailpit:
+    ports: !override []
+
+  minio:
+    ports: !override []
+
+  redis:
+    ports: !override []
+
+  backend:
+    ports: !override []
+    environment:
+      RATE_LIMIT_TRUST_FORWARDED_HEADERS: ${RATE_LIMIT_TRUST_FORWARDED_HEADERS:-true}
+
+  frontend:
+    ports: !override []
+
+  clamav:
+    ports: !override []
+
+  reverse-proxy:
+    # Toujours démarré en overlay prod (plus de --profile proxy).
+    profiles: !reset []
+    ports: !override
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"

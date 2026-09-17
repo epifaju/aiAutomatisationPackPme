@@ -91,6 +91,9 @@ Copy-Item "docker-compose.yml" (Join-Path $Out "docker-compose.yml")
 if (Test-Path "docker-compose.dev.yml") {
   Copy-Item "docker-compose.dev.yml" (Join-Path $Out "docker-compose.dev.yml")
 }
+if (Test-Path "docker-compose.prod.yml") {
+  Copy-Item "docker-compose.prod.yml" (Join-Path $Out "docker-compose.prod.yml")
+}
 if (Test-Path "proxy") {
   Copy-Item "proxy" (Join-Path $Out "proxy") -Recurse -Force
 }

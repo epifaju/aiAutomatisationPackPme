@@ -337,7 +337,7 @@ services:
     networks:
       - aipack
 
-  # reverse-proxy (Caddy) — optionnel, profile "proxy" (PRD : esquissé, off par défaut)
+  # reverse-proxy (Caddy) — profile "proxy" en local (8088/8443) ; overlay prod = 80/443 uniquement (P0.5)
   reverse-proxy:
     profiles: ["proxy"]
     image: caddy:2.9-alpine
@@ -346,9 +346,10 @@ services:
     ports:
       - "${PROXY_HTTP_PORT:-8088}:80"
       - "${PROXY_HTTPS_PORT:-8443}:443"
+      - "${PROXY_HTTPS_PORT:-8443}:443/udp"
     environment:
       PROXY_SITE: ${PROXY_SITE:-:80}
-      PROXY_ACME_EMAIL: ${PROXY_ACME_EMAIL:-}
+      PROXY_ACME_EMAIL: ${PROXY_ACME_EMAIL:-caddy@localhost.invalid}
     volumes:
       - ./proxy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -359,7 +360,7 @@ services:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://127.0.0.1/healthz"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:9080/readyz"]
       interval: 10s
       timeout: 5s
       retries: 8

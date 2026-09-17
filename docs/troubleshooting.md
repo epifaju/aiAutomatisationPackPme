@@ -9,8 +9,9 @@ Action : modifier le port hôte dans `.env` (`POSTGRES_PORT`, `BACKEND_PORT`, `N
 ## Frontend OK mais API en erreur
 
 - Vérifier `docker compose ps` : `backend` healthy.
-- Depuis l’hôte : `http://localhost:$BACKEND_PORT/actuator/health`.
+- Depuis l’hôte (dev) : `http://localhost:$BACKEND_PORT/actuator/health`.
 - Via UI : `/api/` est proxifié par Nginx ; en Vite local, vérifier `API_PROXY_TARGET`.
+- En production : pas de port backend publié — `docker compose exec backend curl -fsS http://127.0.0.1:8080/actuator/health` ou `./scripts/healthcheck.sh --prod`.
 
 ## Ollama lent / timeout IA
 

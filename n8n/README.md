@@ -27,7 +27,7 @@ Les workflows **n’accèdent plus** à `$env` / `process.env` (`N8N_BLOCK_ENV_A
 Le secret `WEBHOOK_SECRET` est importé en credential n8n **`AIPACK Backend Webhook`** (`httpHeaderAuth`) par `n8n-init`.
 L’URL backend est figée à `http://backend:8080` (réseau Compose). Aucun secret dans les JSON.
 
-Au premier `n8n-init`, un compte **owner** est créé si besoin (`N8N_OWNER_EMAIL` / `N8N_OWNER_PASSWORD`). Login UI n8n obligatoire ensuite.
+Au premier `n8n-init`, un compte **owner** est créé si besoin (`N8N_OWNER_EMAIL` / `N8N_OWNER_PASSWORD`). Login UI n8n obligatoire ensuite. En production (P0.5) le port n8n n’est plus publié — tunnel SSH, voir [docs/proxy.md](../docs/proxy.md).
 
 Webhooks n8n (header `X-Webhook-Secret` obligatoire) :
 

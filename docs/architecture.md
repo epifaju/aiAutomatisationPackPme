@@ -11,7 +11,7 @@ Navigateur → [Caddy optionnel] → frontend (Nginx) → /api → backend (Spri
 backend ←→ Ollama (IA) · MinIO (documents + PJ email) · Redis (cache) · SMTP (Mailpit)
 ```
 
-Entrée unique optionnelle : profile Compose `proxy` (Caddy) — [proxy.md](proxy.md).
+Entrée unique : profile Compose `proxy` en local ; overlay `docker-compose.prod.yml` en production (ports **80/443** seulement) — [proxy.md](proxy.md).
 ## Services Compose
 
 | Service | Rôle |
@@ -27,7 +27,7 @@ Entrée unique optionnelle : profile Compose `proxy` (Caddy) — [proxy.md](prox
 | `clamav` | Antivirus clamd (profile `clamav`, off par défaut) |
 | `mailpit` | SMTP de test |
 | `redis` | Cache AI authentifié (`REDIS_PASSWORD`, fail-open) |
-| `reverse-proxy` | Caddy (profile `proxy`, off par défaut) |
+| `reverse-proxy` | Caddy — profile `proxy` en local ; toujours actif avec `docker-compose.prod.yml` |
 
 ## Backend
 

@@ -14,14 +14,14 @@ Copié depuis `.env.example`. **Ne jamais committer `.env`.**
 | Rate limit | `RATE_LIMIT_*` | Bucket4j login/refresh + webhooks (voir [security.md](security.md)) |
 | Documents / OCR | `DOCUMENT_OCR_*` | Tesseract fra+eng dans l’image backend |
 | ClamAV | `CLAMAV_*` | Antivirus optionnel (profile Compose `clamav`) — [security.md](security.md) |
-| Reverse proxy | `PROXY_*` | Caddy optionnel — [proxy.md](proxy.md) |
+| Reverse proxy | `PROXY_*`, `PROXY_ACME_EMAIL` | Caddy local (`--profile proxy`) ou overlay prod 80/443 — [proxy.md](proxy.md) |
 | n8n | `N8N_ENCRYPTION_KEY`, `N8N_OWNER_*`, `N8N_PORT`, `N8N_WEBHOOK_URL` | Owner auth + `BLOCK_ENV` (P0.4) ; clé stable credentials |
 | IA | `AI_PROVIDER`, `OLLAMA_*`, `AI_OPENAI_*`, `AI_ANTHROPIC_*`, `AI_TIMEOUT` | `ollama` (défaut), `openai`, ou `anthropic` |
 | Emails / factures / rapports | `*_AUTO_SEND` | `false` par défaut (validation humaine) |
 | MinIO | `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY` | Changer en production |
 | SMTP | `SMTP_HOST`, `MAILPIT_*` | Mailpit en développement |
 
-Les ports `*_PORT` concernent la publication **hôte**. Les services se parlent entre eux via les noms Compose (`postgres:5432`, `mailpit:1025`, …).
+Les ports `*_PORT` concernent la publication **hôte en développement**. En production, `docker-compose.prod.yml` les retire : seuls 80 et 443 (Caddy) sont exposés. Les services se parlent entre eux via les noms Compose (`postgres:5432`, `mailpit:1025`, …).
 
 ## Profils de sécurité métier
 
